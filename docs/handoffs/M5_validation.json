@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "stage": "M5",
+  "date": "2026-10-29",
+  "implementation_sha256": "ab9f0a71275dff750102c63342ba67a9e6fee7a905c9678b8152a50c8aae2476",
+  "previous_stage_regression": {
+    "passed": 323,
+    "skipped": 1,
+    "duration_seconds": 118.03
+  },
+  "final_full_regression": {
+    "command": ".venv/bin/python -m pytest -q",
+    "passed": 392,
+    "skipped": 2,
+    "duration_seconds": 135.15,
+    "skip_reasons": [
+      "No verified OS arbitrary-code isolation backend",
+      "Sandbox prohibits local HTTP listener"
+    ]
+  },
+  "local_http_gateway_validation": {
+    "command": ".venv/bin/python -m pytest tests/m5/test_chat_models.py -q",
+    "passed": 20,
+    "skipped": 0,
+    "duration_seconds": 1.01,
+    "environment": "local loopback permitted, dummy credentials, no external API"
+  },
+  "control_training_smoke": {
+    "command": ".venv/bin/python scripts/task_a_training_smoke.py --output runs/m5-final-validation",
+    "roots": {
+      "train": 8,
+      "calibration": 10,
+      "sealed": 2
+    },
+    "training_model_sha256": "8262ecb8a008cb685f422615dba7a3ebb4dc2146c74ea670ea0a55198b8e8242",
+    "calibrated_model_sha256": "41f7a9350a16b525a33d73613c25c3994fa160e653c3d7464a414d35e18257c7",
+    "decisions": {
+      "accept": 0,
+      "reject": 1,
+      "inconclusive": 1
+    },
+    "summary_sha256": "a1e00f1f5883ae13d76cdf7db5f96a2ee689f180cc66340b4b2e13eb1f70b478",
+    "paper_results": false
+  },
+  "cli_resume": {
+    "measured_roots": 8,
+    "cached_dispatched_calls": 168,
+    "additional_calls": 0
+  },
+  "package_validation": {
+    "wheel_sha256": "e2f00ddb32adf6c39cdf52c365bf63042684fd190fe5140f67286514d488a74a",
+    "offline_install": true,
+    "outside_source_tree": true,
+    "collected_roots": 2,
+    "resume_equal": true,
+    "train_and_cli_predict": true
+  },
+  "frozen_files_checked": 18,
+  "frozen_files_unchanged": true,
+  "cloud": {
+    "provider": "OpenRouter",
+    "model": "qwen/qwen3-coder",
+    "max_planned_calls": 21,
+    "api_key_environment": "OPENROUTER_API_KEY",
+    "environment_configured": false,
+    "cloud_requests": 0
+  },
+  "limitations": [
+    "one authorization family and q updates",
+    "bounded JSON programs, no arbitrary code execution",
+    "CPU baseline, no pretrained encoder or learned probe routing",
+    "fixed-candidate policy evaluation, not a new deployment trial",
+    "no natural data or paper endpoint results"
+  ]
+}

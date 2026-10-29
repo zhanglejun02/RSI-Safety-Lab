@@ -1,0 +1,21 @@
+schema_version = 1
+provider = "http"
+partition = "dev"
+roots = 1
+seed = 1000
+horizon = 6
+repetitions = 1
+probe_horizon = 2
+development_rounds = 4
+schedule = "mixed"
+base_url = "https://openrouter.ai/api/v1"
+model = "qwen/qwen3-coder"
+api_key_env = "OPENROUTER_API_KEY"
+max_calls = 21
+max_total_tokens = 100000
+max_output_tokens = 256
+timeout_seconds = 60.0
+
+# 4 public development + 1 q proposal + 4 paired short probe + 12 independent
+# continuation calls. Credentials must be provided by the process environment.
+# Bounded JSON strategies only; no arbitrary generated code is executed.

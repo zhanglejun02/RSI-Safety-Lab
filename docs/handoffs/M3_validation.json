@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "stage": "M3",
+  "project_root": "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab",
+  "date": "2026-10-29",
+  "timezone": "Asia/Shanghai",
+  "entry_validation": {
+    "command": ".venv/bin/python -m pytest tests/m1 tests/m2 -q",
+    "passed": 206,
+    "seconds": 12.0,
+    "baseline_mismatches": []
+  },
+  "final_tests": {
+    "command": ".venv/bin/python -m pytest tests/m1 tests/m2 tests/m3 -q",
+    "passed": 260,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 54.02,
+    "m1_m2": 206,
+    "m3": 54
+  },
+  "python": "3.12.0",
+  "sqlite": "3.42.0",
+  "implementation_sha256": "b3f68e2815c9f93d6e0b8e148b6ac26b40eb16f2d8c89e58e0d6a94221c798d6",
+  "cli_commands": [
+    {
+      "name": "doctor",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "doctor"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_smoke_validate",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "validate",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_smoke.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_smoke_run",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "run",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_smoke.toml",
+        "--output",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-smoke"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_smoke_resume",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "resume",
+        "--run",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-smoke"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_smoke_inspect",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "inspect",
+        "--run",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-smoke"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_probe_admission_validate",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "validate",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_probe_admission.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_probe_admission_run",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "run",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_probe_admission.toml",
+        "--output",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-probe"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_probe_admission_resume",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "resume",
+        "--run",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-probe"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_probe_admission_inspect",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "inspect",
+        "--run",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-probe"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_transition_validate",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "validate",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_transition.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_transition_run",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "run",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_transition.toml",
+        "--output",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-transition"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_transition_resume",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "resume",
+        "--run",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-transition"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "m3_transition_inspect",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "inspect",
+        "--run",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/runs/m3-transition"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "wheel_build",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "pip",
+        "wheel",
+        "--no-build-isolation",
+        "--no-deps",
+        "--no-index",
+        ".",
+        "--wheel-dir",
+        "/private/tmp/rsi_m3_package_cce7omo3/wheels"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "wheel_install",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "--no-deps",
+        "--no-index",
+        "--target",
+        "/private/tmp/rsi_m3_package_cce7omo3/installed",
+        "/private/tmp/rsi_m3_package_cce7omo3/wheels/rsi_safety_lab-0.1.0-py3-none-any.whl"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "wheel_m3_smoke",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "run",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_smoke.toml",
+        "--output",
+        "/private/tmp/rsi_m3_package_cce7omo3/m3_smoke"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "wheel_m3_transition",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "run",
+        "--config",
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/configs/m3_transition.toml",
+        "--output",
+        "/private/tmp/rsi_m3_package_cce7omo3/m3_transition"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "frozen_inputs_unchanged": true,
+  "original_reference_files_unchanged": true,
+  "actual_total_synthetic_units": {
+    "m3_smoke": 20,
+    "m3_probe_admission": 100,
+    "m3_transition": 7
+  },
+  "probe_audit_units_per_admission": 40,
+  "idempotent_resume_verified": true,
+  "wheel_built_and_installed_outside_source": true,
+  "package_verification_path": "/private/tmp/rsi_m3_package_cce7omo3",
+  "changed_since_m2": [
+    "README.md",
+    "docs/architecture.md",
+    "docs/gpu_validation.md",
+    "src/rsi_lab/cli.py",
+    "src/rsi_lab/config.py",
+    "src/rsi_lab/engine/runner.py",
+    "src/rsi_lab/engine/state.py",
+    "src/rsi_lab/infra/models.py",
+    "src/rsi_lab/ports.py",
+    "src/rsi_lab/preparation.py",
+    "src/rsi_lab/subjects/fake.py",
+    "src/rsi_lab/subjects/verification.py",
+    "src/rsi_lab/wiring.py"
+  ],
+  "crash_points_tested": [
+    "after_effect",
+    "after_probe_branch",
+    "after_staging",
+    "after_commit",
+    "after_model_response"
+  ],
+  "unknown_reservations_preserved": true,
+  "failed_validation_exposures_preserved": true,
+  "not_run": [
+    "real LLM inference",
+    "GPU work",
+    "OS hard isolation",
+    "four-family authorization battery",
+    "sealed evaluation",
+    "M4 research export and statistics"
+  ]
+}

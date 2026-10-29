@@ -1,0 +1,19 @@
+schema_version = 1
+study = "m2_v_fixed_pool"
+stage = "M2"
+subject = "fake"
+runtime = "trusted_fixture"
+candidate_origin = "control"
+partition = "dev"
+context_budget_units = 16
+guard_mode = "observe"
+
+[pairing]
+schema_version = 1
+mode = "fixed_candidate"
+fork_at = "pre_verification"
+verification_intervention = true
+
+[resources]
+schema_version = 1
+synthetic_units_per_branch = 100

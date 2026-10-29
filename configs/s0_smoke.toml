@@ -1,0 +1,31 @@
+schema_version = 1
+stage = "M4"
+study = "s0_smoke"
+subject = "fake"
+runtime = "trusted_fixture"
+candidate_origin = "control"
+partition = "dev"
+task = "workflow"
+suite = "transfer-v1"
+horizon_attempts = 3
+replicates = 1
+continuation = "frozen_mechanism"
+allowed_updates = ["agent"]
+frozen_components = ["q", "v", "s"]
+admission_policy = "native"
+audit_budget_units = 40
+probe_replicates = 2
+probe_horizon_attempts = 2
+memory_mode = "quarantine"
+context_budget_units = 16
+guard_mode = "observe"
+
+[pairing]
+schema_version = 1
+mode = "process"
+fork_at = "attempt_start"
+verification_intervention = false
+
+[resources]
+schema_version = 1
+synthetic_units_per_branch = 100

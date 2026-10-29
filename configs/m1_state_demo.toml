@@ -1,0 +1,30 @@
+schema_version = 1
+study = "m1_state_demo"
+stage = "M1"
+subject = "state_fixture"
+runtime = "trusted_fixture"
+candidate_origin = "control"
+partition = "dev"
+arbitrary_code_execution = false
+frozen_definition_version = "frozen-p0-v1"
+fixture_version = "transfer-v1"
+
+[pairing]
+schema_version = 1
+mode = "process"
+fork_at = "attempt_start"
+verification_intervention = false
+
+[random]
+schema_version = 1
+master_seed = 104729
+generation = "independent_requests"
+task = "paired_by_position"
+q = "paired_by_position"
+v = "paired_by_position"
+algorithm = "sha256_position_v1"
+
+[resources]
+schema_version = 1
+synthetic_units_per_branch = 100
+

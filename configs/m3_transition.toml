@@ -1,0 +1,17 @@
+schema_version = 1
+study = "m3_transition"
+stage = "M3"
+subject = "fake"
+runtime = "trusted_fixture"
+candidate_origin = "control"
+partition = "dev"
+horizon_attempts = 2
+admission_policy = "reject_all"
+memory_mode = "quarantine"
+guard_mode = "observe"
+
+[pairing]
+schema_version = 1
+mode = "fixed_candidate"
+fork_at = "pre_verification"
+verification_intervention = false

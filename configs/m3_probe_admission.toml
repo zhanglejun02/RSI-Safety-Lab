@@ -1,0 +1,16 @@
+schema_version = 1
+study = "m3_probe_admission"
+stage = "M3"
+subject = "fake"
+runtime = "trusted_fixture"
+candidate_origin = "control"
+partition = "dev"
+horizon_attempts = 2
+admission_policy = "probe"
+audit_budget_units = 40
+memory_mode = "quarantine"
+guard_mode = "observe"
+
+[resources]
+schema_version = 1
+synthetic_units_per_branch = 100

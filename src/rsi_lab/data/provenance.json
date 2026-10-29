@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "frozen_definition_version": "frozen-p0-v1",
+  "fixture_version": "transfer-v1",
+  "golden_version": "transition-v1",
+  "sources": [
+    {
+      "original_path": "/Users/zhangyuejun/Downloads/RSI_Safety_Lab_Codex_Implementation_Prompt.md",
+      "preserved_path": "docs/specs/reference/RSI_Safety_Lab_Codex_Implementation_Prompt.md",
+      "sha256": "e3508661a1b67a31614f9f17611e33e8f1194afd3d793a836ae2f2c76e1f5945"
+    },
+    {
+      "original_path": "/Users/zhangyuejun/Downloads/RSI_Safety_Proposal_ZH_v2.md",
+      "preserved_path": "docs/specs/reference/RSI_Safety_Proposal_ZH_v2.md",
+      "sha256": "134758dc4549566424d6f4f341c76eaa66618ea515860075b886fdfddcd0b028"
+    }
+  ],
+  "frozen_files": {
+    "docs/frozen_definitions.md": "0d4098c81550cf493a5e0a5e30722d5503a0439c6ddd40e03942991e38fbcb7f",
+    "docs/specs/frozen_fixture_appendix_a.md": "8be39c7582065221332c01c17247b82f264ef98a693e2ee0dcea28e3b6769e9d",
+    "docs/specs/frozen_transition_appendix_b.md": "13d790312ffb44c48119efdd94dc108859f4576c147619a534ae3d51948a8d7f",
+    "tests/golden/context_entries.json": "8b18d38f2dc97b311fe373474360cc0e593feb930c5aaea7db1f29117e95f8e0",
+    "tests/golden/transition_v1.expected.json": "e9e09804e75357c55ca850a94689ab41b10d4461dc3e94af4993c058aa48c9e7",
+    "tests/golden/version_D.json": "426bc359d02ec517ee42448573a130ab2c38bc01dd4637b8b777e2b6605c9a64",
+    "tests/golden/version_E.json": "087a262a54cdf66ea5b4d972ec4f5d75e0a9bc8f8426611df8b52e27d382136d",
+    "tests/golden/version_N.json": "929032b5ae06a7671f4485351e97303d755a64e8bf30f73fc4ebe9ddab4af4dd",
+    "tests/golden/version_P.json": "8dff17061cb70957ee37125b7be4fbd5977ab59be2d9a7c26ae02e9f2add8742",
+    "tests/golden/version_sha256.json": "fcc380e80086fbf0a933c321acf8cf58afa0d342d2724f139642c1f3412ab1de"
+  }
+}

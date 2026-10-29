@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-29",
+  "timezone": "Asia/Shanghai",
+  "project_root": "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab",
+  "stage": "M1",
+  "test_command": ".venv/bin/python -m pytest tests/m1 -q",
+  "test_result": {
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 3.86
+  },
+  "python": "3.12.0",
+  "sqlite": "3.42.0",
+  "development_packages": {
+    "pytest": "9.2.0",
+    "setuptools": "84.2.1",
+    "wheel": "0.48.0",
+    "iniconfig": "2.3.1",
+    "packaging": "26.3",
+    "pluggy": "1.7.0",
+    "Pygments": "2.21.0"
+  },
+  "implementation_sha256": "93b864d4b9746d995097cd3e2224f8840300efef369b187cec4ee7674cce7ba8",
+  "cli_commands": [
+    {
+      "label": "doctor",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "doctor"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "validate",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "validate",
+        "--config",
+        "configs/m1_state_demo.toml"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "run_stopped",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "run",
+        "--config",
+        "configs/m1_state_demo.toml",
+        "--output",
+        "runs/m1-demo",
+        "--stop-after",
+        "2"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "inspect_stopped",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "inspect",
+        "--run",
+        "runs/m1-demo"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "resume",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "resume",
+        "--run",
+        "runs/m1-demo"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "inspect_resumed",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "inspect",
+        "--run",
+        "runs/m1-demo"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "resume_idempotent",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "-m",
+        "rsi_lab",
+        "resume",
+        "--run",
+        "runs/m1-demo"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "label": "gpu_preflight",
+      "command": [
+        "/Users/zhangyuejun/Documents/ChatGPT/RSISafetyLab/.venv/bin/python",
+        "scripts/gpu_preflight.py",
+        "--output",
+        "runs/gpu-report.json",
+        "--require-cuda"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2
+    }
+  ],
+  "repeat_resume_unchanged": true,
+  "wheel_built": true,
+  "wheel_installed_offline_outside_repository": true,
+  "wheel_doctor_and_state_demo_passed": true,
+  "original_reference_files_unchanged": true,
+  "gpu": {
+    "host": {
+      "system": "Darwin",
+      "release": "24.6.0",
+      "machine": "arm64",
+      "python": "3.12.0",
+      "cpu_count": 8
+    },
+    "cuda_available": false,
+    "inference_run": false
+  },
+  "not_verified": [
+    "Python 3.11 and other OS CI",
+    "OS isolation",
+    "M3 full kill/restart matrix",
+    "task/oracle/admission/descendant semantics",
+    "CUDA inference",
+    "scientific validity"
+  ]
+}

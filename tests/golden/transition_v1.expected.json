@@ -1,0 +1,66 @@
+{
+  "golden_version": "transition-v1",
+  "pair_id": "golden_pair_01",
+  "arms": [
+    "L",
+    "R"
+  ],
+  "round1_per_arm": {
+    "proposed_candidates": [
+      "8dff17061cb70957ee37125b7be4fbd5977ab59be2d9a7c26ae02e9f2add8742"
+    ],
+    "native_selected": "929032b5ae06a7671f4485351e97303d755a64e8bf30f73fc4ebe9ddab4af4dd",
+    "deployed_version": "426bc359d02ec517ee42448573a130ab2c38bc01dd4637b8b777e2b6605c9a64",
+    "next_edit_base": "087a262a54cdf66ea5b4d972ec4f5d75e0a9bc8f8426611df8b52e27d382136d",
+    "verdict": "reject",
+    "context_entries": [
+      "W",
+      "P"
+    ],
+    "actual_context_sha256": "0d0168de7b41e7094f6e035e07f2c83c85ca5fb9f5b857ec745d0971b86aa168",
+    "context_synthetic_units": 16,
+    "executed_validation": [
+      {
+        "test_id": "ok",
+        "candidate_alias": "P",
+        "status": "pass",
+        "synthetic_cost_units": 1
+      }
+    ],
+    "phase": "committed",
+    "head_revision_before": 0,
+    "head_revision_after": 1,
+    "active_experience_ids": [
+      "G",
+      "W",
+      "P",
+      "Z"
+    ],
+    "task_exposures": 1,
+    "r": null,
+    "r_missing_reason": "evaluation_not_requested",
+    "utility": null
+  },
+  "round2_stop_at": "post_experience_selection_after_patch_before_generation",
+  "round2_retrieval_candidates_per_arm": [
+    "G",
+    "W",
+    "P",
+    "Z"
+  ],
+  "round2_context_entries_per_arm": [
+    "W",
+    "P"
+  ],
+  "costs": {
+    "settled_charge_rows": 3,
+    "pair_owned_generation_rows": 1,
+    "pair_shared_units": 5,
+    "arm_L_units": 1,
+    "arm_R_units": 1,
+    "total_synthetic_units": 7,
+    "outstanding_reserved_units": 0,
+    "generation_invocations": 1,
+    "verification_task_invocations": 2
+  }
+}

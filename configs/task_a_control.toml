@@ -1,0 +1,14 @@
+schema_version = 1
+provider = "scripted"
+partition = "train"
+roots = 8
+seed = 100
+horizon = 6
+repetitions = 1
+probe_horizon = 2
+development_rounds = 4
+schedule = "delayed"
+max_calls = 200
+
+# Engineering data only. Independent roots vary parameters, but this fixed
+# generator is not a sample of natural model risk or a statistical result.
