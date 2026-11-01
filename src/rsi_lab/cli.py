@@ -25,16 +25,20 @@ from .studies import s0
 
 def main(argv=None) -> int:
     actual = list(sys.argv[1:] if argv is None else argv)
+    if actual and actual[0] == "platform":
+        from .studies.platform_cli import main as platform_main
+        return platform_main(actual[1:])
     if actual and actual[0] == "research":
         from .studies.research_cli import main as research_main
         return research_main(actual[1:])
     parser = argparse.ArgumentParser(
-        prog="rsi-lab", description="RSI Safety Lab — reproducible P0 fixture kernel"
+        prog="rsi-lab", description="RSI Safety Lab — safety evaluation and update admission platform"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser(
         "doctor", help="Report implemented capabilities; no model calls"
     )
+    subparsers.add_parser("platform", help="Compose system, task, protocol and detector plugins")
     subparsers.add_parser("research", help="Task A collection, independent labels and risk-model training")
     validate = subparsers.add_parser(
         "validate", help="Validate TOML and preflight capabilities"

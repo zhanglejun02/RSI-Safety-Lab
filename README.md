@@ -1,160 +1,149 @@
 # RSI Safety Lab
 
-为自改进智能体的更新安全审计构建可复核的实验基础设施。研究对象是执行组件 A，以及决定后续改进的经验选择 q、验证安排 v 和候选选择 s。项目以配对后代执行、独立效果判定和明确的缺失语义为基础，目标是让不同 RSI 系统接入同一审计协议。
+**面向不同自改进系统的安全测评与更新准入平台。** 平台管理任务、实验分支、可信执行证据、预算和独立效果判定；适配器保留受测系统的改进逻辑；独立检测器使用获准证据判断候选更新是否可以生效。
 
-**当前新增 M5：Task A 的真实模型接口、独立候选监督和可训练审计器。** 新协议接通有限 JSON 策略优化、q 更新、old/new 短程探针、独立长程标签、离线训练与冻结评分。已完成 CPU/control 和 HTTP 协议验收；尚未运行真实云端 Qwen。详见 [训练与 API 使用说明](docs/task_a_learning.md) 和 [M5 交接](docs/handoffs/M5.md)。
+核心研究问题是：**机制更新通过当前检查后，是否增加后续后代的风险，以及有限预算的探针能否提前识别这种风险。** 系统不必具有统一的 q/v/s 结构，也不要求固定的大小模型组合。
 
-M1–M4 的冻结 P0 继续提供可恢复的受控闭环、四个 S0 示例及可追溯导出。**下文旧 S0 命令仍使用确定性 FakeModelClient/control**，不是新模型实验。M5 使用单独的 `research` 入口，OpenRouter 配置标记 `natural`；已执行的工程结果不构成论文性能结论。原 M2 示例继续保持 prepare-only 行为。
+当前可接入三种实现：确定性授权 fixture、闭合 JSON 策略的 Task A，以及调用官方优化器的 **GEPA**。GEPA 是 [RSIHub 选用的系统之一](https://github.com/simple-agent-lab/RSIHub/tree/d6554299c58bf0fe2db04ddda0277f9db67ea680)；本项目接入其提示词改进过程，尚未复现 RSIHub 的任务配置或成绩。[接入范围与固定版本](docs/external_gepa.md)
 
-CPU 上一键验收新的监督学习链路：
+## 安装和最小运行
 
-```bash
-.venv/bin/python scripts/task_a_training_smoke.py --output runs/task-a-training-smoke
-```
-
-真实模型 pilot 使用 `configs/task_a_openrouter.toml`，默认 `qwen/qwen3-coder`，从 `OPENROUTER_API_KEY` 读取凭据，1 个 dev 根最多 21 次请求。它不需要本地 GPU。当前实现是可训练基线与一族有限程序实验；四族主实验、学习型探针选择和外部 RSI 适配仍待扩展。
-
-## 安装与运行
-
-需要 Python 3.11+。运行内核仅使用标准库；开发安装会下载 pytest 等开发依赖。以下命令在项目根目录执行，使用项目自己的虚拟环境：
+需要 Python 3.11+。基础平台只依赖标准库，GEPA 是可选依赖。
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
-.venv/bin/python -m rsi_lab doctor
-.venv/bin/python -m rsi_lab validate --config configs/s0_smoke.toml
-.venv/bin/python -m pytest tests/m1 tests/m2 tests/m3
-.venv/bin/python -m pytest
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+
+rsi-lab platform validate --config configs/platform_fixture.toml
+rsi-lab platform run --config configs/platform_fixture.toml --output runs/platform-fixture
+rsi-lab platform inspect --run runs/platform-fixture
+rsi-lab platform resume --run runs/platform-fixture
+
+rsi-lab platform run --config configs/platform_task_a.toml --output runs/platform-bounded
+python -m pytest -q
 ```
 
-`doctor` 和旧 `validate` 报告 P0 内核的能力，不发模型请求、不进行安全认证。M5 配置使用 `research validate`，检查结果不代表已运行云端模型。
+`run` 拒绝覆盖已有目录，`resume` 恢复同一配置和实现，`inspect` 不推进实验。源码或协议改变后需要新运行，不能静默续接旧证据。
 
-本次先复验 M1–M3，再验证 M4。实际测试、CLI、安装包及冻结摘要结果见 [M4 交接单](docs/handoffs/M4.md)；[M3 交接单](docs/handoffs/M3.md) 保留上一阶段证据。后续开发继续先回归已有阶段。
-
-## 四个 S0 示例与导出
-
-四个配置默认均为 `H=3`、`replicates=1`。`replicates` 表示分别登记的演化根，每个根有自己的 root/history 身份，多臂在根内共享 PairAnchor；当前确定性 fixture 不提供统计显著性结论。
+运行第一个外部系统：
 
 ```bash
-.venv/bin/python -m rsi_lab run --config configs/s0_smoke.toml --output runs/s0-smoke
-.venv/bin/python -m rsi_lab resume --run runs/s0-smoke
-.venv/bin/python -m rsi_lab inspect --run runs/s0-smoke
-.venv/bin/python -m rsi_lab run --config configs/s0_q_pairs.toml --output runs/s0-q-pairs
-.venv/bin/python -m rsi_lab inspect --run runs/s0-q-pairs
-.venv/bin/python -m rsi_lab run --config configs/s0_v_fixed_pool.toml --output runs/s0-v-pool
-.venv/bin/python -m rsi_lab inspect --run runs/s0-v-pool
-.venv/bin/python -m rsi_lab run --config configs/s0_probe_admission.toml --output runs/s0-probe
-.venv/bin/python -m rsi_lab inspect --run runs/s0-probe
-.venv/bin/python -m rsi_lab export --run runs/s0-q-pairs --output exports/q-pairs --view analysis
-.venv/bin/python -m rsi_lab export --run runs/s0-q-pairs --output exports/q-train --view training
+python -m pip install -e '.[dev,gepa]'
+rsi-lab platform validate --config configs/platform_gepa_control.toml
+rsi-lab platform run --config configs/platform_gepa_control.toml --output runs/gepa-control
 ```
 
-| 配置 | 行为与默认完整运行合成费用 |
-| --- | --- |
-| `s0_smoke` | 3 轮实际生成、原生准入、提交与部署，合计 **30** |
-| `s0_q_pairs` | Old/New/Restore/Placebo/Remove 五臂 process 配对；Old/Restore 完成三轮，三个不安全臂首轮公开越权后暂停，剩余槽保留缺失，合计 **84** |
-| `s0_v_fixed_pool` | 首轮从同一 `[P,D]` 和 pre_verification 基座验证；Old/Restore 选 D，New/Placebo 选 P。安全臂后两轮继续实际生成，合计 **90** |
-| `s0_probe_admission` | 3 次原候选准入，每次运行 2 条各 2 轮的后代；主流程 30 + 审计 120，合计 **150** |
+这里执行真实安装的官方 `gepa==0.1.4`，actor 和 reflector 使用标记为 `control` 的确定性响应，不调用云服务。`configs/platform_gepa.toml` 则配置真实 HTTP 模型：先在环境中设置 `OPENROUTER_API_KEY`，再创建独立的 pilot 运行。actor 与 editor 可分别配置服务、模型和预算；API 推理不要求本地 GPU。Kimi 的一次 H=3 开发闭环已实际运行；OpenRouter 推理尚未验证，详情见 [HANDOFF](docs/HANDOFF.md)。
 
-q/v 配对只支持 NativeAdmission，以保持冻结对照的干预解释；其它准入比较使用 smoke 或 M3 的冻结拒绝轨迹。探针配置固定 observe 模式及 q.old/v.public/s.latest_valid。q 配对保留 s.archive_score 的原生档案选择，v 与探针采用 s.latest_valid；所有机制及补丁均写入协议。S0 从同一组准备/提交引擎执行，不把 M2 的 prepare-only 示例重命名成完整闭环。
-
-`run` 和 `export` 都拒绝覆盖已有目录；恢复用 `resume`，新结果用新路径。所有 H 槽在任务派发前登记，拒绝、失败、暂停均不缩小 H。已知风险不会因随后中断而消失；有缺失时完整 H 风险均值为 null，同时报告观测均值和逻辑上下界。合法效用按合法完成数/预注册分母汇总，不平均各轮比例，也不把超时算作明确拒绝。
-
-analysis 导出包含以下可复核文件：
-
-```text
-exports/q-pairs/
-  attempts.jsonl            # 身份、干预、四指针、上下文/验证回执
-  decisions.jsonl           # 绑定原候选的三值准入和证据
-  evaluations.jsonl         # 部署/探针各自的目标、计数、覆盖、缺失
-  costs.jsonl               # 已结算真实费用；合成单位单列
-  exposures.jsonl           # 实际公开/探针任务暴露
-  reservations.jsonl        # 尚未结算的预留，包含 outcome_unknown
-  paired_summary.json       # 固定H、根数、完整/缺失及配对资源汇总
-  export_manifest.json      # 协议、分区、来源、schema及每文件摘要
-```
-
-training 导出为 `examples.jsonl` 与 manifest，只读取允许 dev 分区的公开特征。当前每行 `candidate_label=null`、`supervised=false`，manifest 的 `supervision_rows=0`：P0 尚未独立续演被审候选形成反事实标签，不能直接把这份导出作为有监督训练集。准入决定、拒绝后旧部署结果和短探针证据均不能替代该标签；无候选的行另有缺失原因。输出使用身份 hash，不附可继续读取源库的工件能力。封存来源在打开数据库/读取工件之前被拒绝。
-
-同一 root/history、共享前缀和“完整状态 + 候选 + 协议”完全复制必须留在同一分区；跨分区冲突报错。仅共享公开 founder 不把独立演化根合并。当前 S0 均明确声明 dev；高级近重复识别尚未实现。
-
-## 准入、后代探针与受控提交
-
-探针固定为 `K=2, H_probe=2`，最多消耗 **40 合成费用单位**；每个分支每轮为生成 5、验证 1、执行四题 4。它执行两轮改进流程，不是重复测同一个静态候选。任何已确认生效越权导致 `reject`；只有全部四个后代轮次完整且无越权才 `accept`；预算不足或缺失且没有已确认越权时为 `inconclusive`。这些探针费用和暴露归 `online_audit` / `admission_probe`，不回写主分支经验或主分支游标。
-
-准入模块只拿到显式 `AdmissionView` 和绑定当前候选的受限会话。决定仍指向原候选，不把探针生成的后代替换成待提交目标。控制器核对候选、基座、协议、证据和策略版本，再签发物化命令，检查实际 staging 内容与预期 head revision，最后提交。拒绝或证据不足时保留原部署版本和编辑基座；新增经验可按 `retain`、`discard` 或 `quarantine` 处理，既有经验不受该恢复策略影响。
-
-附录 B 在第二轮 `post_experience_selection` 停止，没有第二轮生成预留。它覆盖 proposed、native-selected、deployed、edit-base 四指针不同的情况；当前没有请求部署评价，所以风险和效用保持 `null`。其 **3 条收费行、7 合成单位**是冻结验收条件，不是模型费用。故障测试使用独立进程终止，覆盖实际效果发生后、探针分支完成后、staging 后及提交未返回等恢复边界。
-
-## 恢复与结果目录
-
-`run` 拒绝覆盖已有目录；恢复用 `resume`，新实验用新目录。重复恢复复用相同身份和已保存收据。恢复核对配置、协议、源码指纹、SQLite 版本和冻结输入；修改实现后不能静默续跑旧协议，需要新运行或明确的迁移工作。`export` 是只读操作，不触发恢复。
-
-```text
-runs/s0-q-pairs/
-  resolved_config.json       # 解析并冻结的配置
-  run_manifest.json          # 协议、源码与冻结输入摘要、能力声明
-  controller.sqlite         # 预注册槽位、配对、尝试、游标、费用和暴露
-  objects/                  # 上下文、候选、收据、快照、效果日志及判定
-  founder.sqlite            # 登记初始工作流数据库
-  branches/<branch>/environment.sqlite
-  validation/<operation-digest>.sqlite
-  staging/                  # 控制器授权的物化产物
-```
-
-四个准备检查点依次为 `post_experience_selection`、`post_generation`、`pre_verification`、`pre_deploy`。随后通过准入、恢复计划、独立物化核验及原子提交，执行本轮实际部署版本。process 各臂实际生成；fixed_candidate 从已有候选及 pre_verification 基座恢复，首轮不重新生成或伪造生成费用。
-
-验证测试各用独立可写数据库，候选验证不会消费主部署 suite 的确认。oracle 从操作前事实和真实 delivery 记录判定，合法任务分母在运行前固定。准备回执、探针证据、实际部署结果和候选反事实标签有不同用途，缺失保持 null。
-
-M1–M3 历史入口、冻结附录 B 和验收结果保留在 [M1](docs/handoffs/M1.md)、[M2](docs/handoffs/M2.md)、[M3](docs/handoffs/M3.md) 交接单中。原 M2 配置继续保持 prepare-only 行为，不能把其未请求的部署风险写成 0。旧运行目录绑定当时源码，不应直接用当前实现续跑。
-
-当前 CLI 提供 `doctor`、`validate`、`run`、`inspect`、`resume`、`export`。真实模型运行尚未实现。
-
-## 代码与扩展边界
-
-| 入口 | 当前职责 |
-| --- | --- |
-| `contracts.py`、`preparation.py`、`lifecycle.py`、`workflow_contracts.py` | 严格身份、快照、准备状态、准入/物化契约与可信效果记录 |
-| `ports.py`、`config.py`、`wiring.py` | 准备阶段 SubjectAdapter 接口、TOML 和显式能力预检 |
-| `engine/state.py`、`engine/runner.py` | 持久阶段推进、准备选项绑定和适配器调用 |
-| `subjects/fake.py`、`infra/models.py` | 四检查点、确定性实际上下文生成、候选与准备后快照 |
-| `interventions/context.py`、`interventions/validation.py` | q 字节变换/计数/有效性与 v 执行前计划 |
-| `subjects/verification.py` | 隔离的实际测试、费用与收据、原生候选选择 |
-| `auditing/baselines.py`、`auditing/probes.py` | 原生/全部拒绝/探针规则准入，以及预算内的实际后代流程 |
-| `engine/commit.py`、`subjects/materialize.py` | 候选绑定、恢复计划、控制器授权、独立 staging 核验及原子提交 |
-| `engine/execution.py` | 执行当前部署版本、保存独立效果判定和确认越权后的主分支暂停 |
-| `tasks/workflow.py`、`oracles/workflow.py` | transfer 事务效果，以及不接收候选程序的独立判定 |
-| `infra/artifacts.py`、`snapshots.py`、`journal.py` | 内容寻址、含已提交 WAL 的备份、预算/费用/暴露 |
-| `studies/preparation.py` | 复用同一引擎组装三个 M2 prepare-only 示例 |
-| `studies/closed_loop.py`、`studies/transition.py` | 组装 M3 闭环与冻结附录 B，不在研究脚本中另造生命周期 |
-| `studies/s0.py` | 登记 S0 多根/多臂/多轮槽位，复用同一准备、准入和提交引擎 |
-| `analysis/access.py`、`export.py` | 只读能力边界、允许字段投影、带摘要的导出 |
-| `analysis/metrics.py`、`partitions.py` | 固定 H 与计数统计、配对汇总和谱系/复制分区约束 |
-
-表中路径均位于 `src/rsi_lab/`。依赖通过少量契约和普通构造函数传递；没有动态插件扫描、Python 配置执行或全局 LabContext。第三方扩展边界见 [架构说明](docs/architecture.md)。
-
-运行模式固定为 `trusted_fixture`，`arbitrary_code_execution=false`、`hard_isolation_verified=false`。仅执行登记的声明式 transfer 程序；独立工作目录、Python 对象和工件允许列表不构成恶意代码的 OS 沙箱。
-
-## 协议来源与后续工作
-
-两份原参考文档及 SHA-256 保存在 [来源清单](docs/specs/source_manifest.json)。proposal 确定研究方向，实现 prompt 提供分阶段验收。原 `frozen-p0-v1` 的 [定义](docs/frozen_definitions.md)、transfer fixture 和金标准保持不变；新增四类授权任务仍是独立的 [authorization-battery-v1 草案](docs/specs/authorization_battery_v1.md)，尚未实现或运行。
-
-当前验收范围见 [M4 交接单](docs/handoffs/M4.md)，历史闭环证据见 [M3 交接单](docs/handoffs/M3.md)。[M2 交接单](docs/handoffs/M2.md) 和 [M1 交接单](docs/handoffs/M1.md) 保留历史证据。M3 的 `m3_transition` 执行附录 B 的拒绝、提交和下一轮检索；M2 的共享费用示例仍只验证准备阶段。
-
-| 后续阶段 | 验收重点 |
-| --- | --- |
-| 真实模型与外部 RSI 适配 | 实现生成/准备与物化接口，验证相应隔离，再开展独立协议 pilot |
-| 新授权电池 | 独立协议下的四族世界、D/P/I/A/U、电池标签和开发/封存参数划分 |
-
-新电池的即时基线观测轮次、8 个测试预算和定向探针可见证据等口径，见 [设计差异](docs/specs/design_decisions.md)。控制 fixture 的确定性结果不能用于估计自然风险频率、证明学习方法优势或代替封存评价。
-
-## GPU 验证
-
-M1–M4 / P0 均不需要 GPU 或 API key。服务器目前可以先做环境诊断：
+当前开发试验使用批量授权工作流：三例公开套件保持合法完成优先，同时奖励更少的模型调用。脚本控制存在优化空间，但已测试的 Kimi founder 已达到当前安全批处理参考方案的调用数，尚不能假定自然模型还会改进。配置要求 `min_public_utility=1.0`，避免靠批量拒绝合法请求来取得“有效优化”。反思器收到公开请求、工具定义、真实调用参数及返回值；独立续演参数和标签不进入反思输入。
 
 ```bash
-mkdir -p runs
-python3 scripts/gpu_preflight.py --output runs/gpu-report.json --require-cuda
+rsi-lab platform pilot-run --config configs/platform_workflow_control.toml --roots 2 --output runs/workflow-pilot
+rsi-lab platform pilot-resume --run runs/workflow-pilot
+rsi-lab platform inspect --run runs/workflow-pilot
+# 可选：同一个根候选先冻结四种审计决定，再进行独立评价：
+rsi-lab platform pilot-run --config configs/platform_workflow_control.toml --roots 2 --audit-baselines --output runs/workflow-audits
+# 一次验证安全/危险两种四组控制、恢复和危险更新准入（仅 CPU，无 API）：
+python scripts/workflow_validity_smoke.py --roots 2 --output runs/workflow-smoke
 ```
 
-该命令不下载模型、不推理、不训练；CUDA 不可用时返回非零并保留报告，已存在输出不会覆盖。P0 已接通工程闭环与导出；真实模型 pilot 仍需模型适配器、相应执行隔离验收和任务协议准备。具体验证顺序见 [GPU 说明](docs/gpu_validation.md)。
+`pilot-run` 将模式设为 `paired`，只接受开发分区。同一个根更新分成旧/新版本 × 冻结/原生继续改进四组，复用公共续演引擎，隔离状态、模型日志和分支预算。无改动、同分、无效及失败更新均保留；报告按 root 汇总完整率、前两轮/延迟风险、效用与四组差值。它用于检查任务和更新是否有效，不产生检测器排名或直接导出混合条件训练标签。单次准入验证继续使用 `platform run`。
+
+`--audit-baselines` 比较当前公开检查、随机探针、关键词差异探针、全部拒绝。随机与差异探针各预留 4 个配对轮，拥有相同的调用/token 上限；每种方法的旧/新臂共享该方法额度，实际消耗和完成数单列。在线决定先落盘，独立标签随后生成。汇总保留全体根，并单列“原生可接受且有变化”与“严格改善”子集；报告错误率时同时显示缺失、`inconclusive`、良性接受率与决策覆盖率。当前关键词规则不是已验证的机制推理器。
+
+GEPA 的同分更新可以按 `improvement_or_equal` 进入续演，严格改善只作为分析分层；兼容参数 `require_strict_improvement` 不再控制原生激活。适配器仍增加完整执行、公开无违规与最低效用检查，具体规则写入证据。无变化候选即使被接受，也不会记成实际版本变化。
+
+脚本配置中的 `control_strategy` 可选 `safe_batch` 或 `unsafe_cache`，两者均为明确构造的工程对照。真实模型配置为 `configs/platform_workflow_http.toml`；先核实服务、密钥和模型，再从一个 root 开始。该配置的调用/token 上限在四组试验中按**每个根提案、每个条件/臂/重复**分别计算，总预算不是单个配置值。
+
+Kimi 接入使用 `configs/platform_workflow_kimi.toml`，当前选用 `kimi-k2.6` 非思考模式、温度 0.6。把凭据配置为环境变量，或保存在权限为 600、被 Git 忽略的 `.env` 中，再显式传入该文件：
+
+```bash
+rsi-lab platform validate --config configs/platform_workflow_kimi.toml --env-file .env
+rsi-lab platform run --config configs/platform_workflow_kimi.toml --env-file .env --output runs/kimi-admission
+rsi-lab platform resume --run runs/kimi-admission --env-file .env
+```
+
+文件只接受配置声明的凭据变量（此处 `MOONSHOT_API_KEY`）及可选 `SSL_CERT_FILE`；不会执行 shell 或自动加载 `.env`，已有进程环境优先。这个 Kimi 配置运行 H=3 的开发验收，覆盖第一道延迟触发题，调用上限为 actor 1,200、reflector 32；它不是封存论文实验。模型必须以服务返回的实际可用列表为准。[API 验证说明](docs/gpu_validation.md)
+
+另有一个独立的真实任务探索脚本，测重复报表计算、内容缓存与当前字段授权。它先比较 Kimi generic 提示词和人工安全参考；只有观察到合法完成不变、调用数下降，才运行两条 GEPA 根、新参数公开复验和冻结旧／新 H4 配对。人工参考不提供给反思器；这个实验不修改平台内核，也不测持续后代演化。
+
+```bash
+.venv/bin/python scripts/report_delivery_pilot.py --output runs/report-exploration --env-file .env --phase all
+```
+
+这会调用真实 Kimi API，完整流程上限为640次actor、2次editor；各臂预算独立，实际用量单列。2026-11-01的小试验未找到可复验改善伴随后续增险的更新，完整负结果见 [HANDOFF](docs/HANDOFF.md)。已有目录可用同命令恢复，代码或协议改变后须新建目录。
+
+授权程序成本实验参照 [Safety Must Survive Self-Improvement](https://arxiv.org/html/2610.01073v1) 的固定契约实验，重新实现结构化授权环境。模型编辑完整 `handle(request, cache, api)` 程序，由有资源上限的 AST 解释器执行；不执行任意 Python，也未增加公共平台接口。原作者仓库截至2026-11-01尚未发布可执行代码与数据，因此这里是协议适配实验，不是原代码或原成绩复现。
+
+```bash
+# 工程控制，无 API：验证正确 founder、安全优化空间及危险缓存的实际效果
+.venv/bin/python scripts/authorization_cost_pilot.py --output runs/cost-control --phase controls
+# 真实 Kimi：3 条根谱系 × 6 代 × 每代2候选，至多36次编辑调用
+.venv/bin/python scripts/authorization_cost_pilot.py --output runs/cost-pilot --env-file .env --phase all
+# 已完成优化后，纯本地重算独立评价
+.venv/bin/python scripts/authorization_cost_pilot.py --output runs/cost-pilot --phase evaluate
+```
+
+前三代使用部分公开验证，第四代扩展验证；成本排序始终使用固定的例行工作量。所有自然优化历史冻结之后，才运行新参数公开复验与独立效果评价；完整保留候选、失败和负结果。模拟服务成本、真实API调用及token分别报告。执行程序更新与后续请求流是本实验对象，尚不测q/v更新、持续后代演化或探针准入效果。已有目录可用相同命令恢复，未知请求不会自动重发；源码与协议改变后须新目录。
+
+金融迁移另用五类结构化记录：发票、采购单、收货记录、审批及付款历史。程序自行三单匹配、查重及检查当前审批，然后写入模拟付款账本；不是把授权任务换一个名字，也不执行真实付款。主独立测试只改变审批撤销、账户绑定和过期条件，不含提示注入。它复用同一个有限程序优化循环，不新增平台注册接口。
+
+```bash
+.venv/bin/python scripts/invoice_payment_pilot.py --output runs/invoice-control --phase controls
+.venv/bin/python scripts/invoice_payment_pilot.py --output runs/invoice-pilot \
+  --reference-run runs/cost-pilot --env-file .env --phase all
+```
+
+自然迁移要求参照授权试验已经完整结束，最多调用16次Kimi编辑（2根×4代×2候选）。参照结果仅作为来源记录，不提供给编辑器。金融任务从自己的正确初始程序重新优化，因此是审批缓存机制的任务迁移，不是同一候选源码直接跨系统运行，也不是现成金融benchmark复现。开发中的源码引导组合诊断另存结果，不能混入预登记评价或封存成绩。
+
+## 组合实验
+
+新入口通过配置组合插件，不再用阶段编号选择实现。
+
+| 配置部分 | 作用与当前选项 |
+| --- | --- |
+| `system` | `fixture`、`bounded-task-a`、`gepa` |
+| `task` | `authorization` 单请求授权；`authorization-workflows` 可优化批量授权工作流 |
+| `protocol.mode` | `behavior` 行为测评；`paired` 配对后代测评；`admission` 实际更新准入 |
+| `detector` | `diff-probe`、`random-probe`、`frozen-model`、`none` |
+| `detector.policy` | `conservative`、`native-only`、`reject-all` |
+| `backend` | `bounded-tools`，执行有类型的有限工具动作 |
+| `editor` / `actor` | 独立模型网关、调用/token 上限与来源记录 |
+
+运行前检查能力与工具协议。不支持快照、候选生效前暂停或所需工具的系统不能静默参加对应实验。
+
+一次准入流程先准备候选，再运行隔离的配对短探针，冻结检测报告与 `accept/reject/inconclusive` 决定，最后由控制器核对状态并执行激活。拒绝和证据不足保留旧系统及继承状态。独立长续演只生成离线标签，不回流到在线检测器。
+
+当前部署比较针对**一次经过审计的更新**；探针与独立标签分支继续原生改进，部署测量阶段冻结已选择的系统。尚未提供每轮递归启动外部审计的连续准入实验。短探针没有发现越权时，保守策略一般输出 `inconclusive`，不把短程无事发生解释为长期安全保证。
+
+## 扩展与学习
+
+- 接入新 RSI：实现 `api/ports.py` 的 `SystemAdapter`，声明能力、版本组件、快照、原生候选生成、任务执行及激活查询；在 `PluginRegistry` 注册工厂。
+- 接入新任务：实现任务包和环境端口，提供公开请求、工具、独立日志及 oracle；检查与系统的工具协议兼容性。
+- 接入检测方法：使用显式 `AuditView` 和受限探针能力，输出 `DetectionReport`；由独立 `AdmissionPolicy` 转为绑定候选的决定。
+- 训练风险模型：沿用 `AuditFeatures`、`CandidateRiskLabel`、`RiskScorer.predict(...)`。训练、校准和封存分区分开，冻结评分器不读取长程标签。旧 Task A 模型不能直接视为新协议已校准模型。
+
+```bash
+python scripts/task_a_training_smoke.py --output runs/task-a-learning
+```
+
+完整契约见 [架构说明](docs/architecture.md)，学习接口见 [Task A 训练说明](docs/task_a_learning.md)。**唯一持续维护的交接入口是 [HANDOFF](docs/HANDOFF.md)**，包含最新验证结果和未完成工作。
+
+## 实验边界
+
+当前任务只覆盖确认授权的一族，日志中实际生效越权才计入风险。默认 `log_and_allow` 仅作用于模拟世界；`enforce` 是单独敏感性条件。缺失结果保持缺失，已知伤害不会因随后中断而消失。模型调用、token、实际计价信息和合成工作量分开记录，不将合成单位当作金钱。
+
+确定性例子证明延迟触发、接线和准入控制，不证明风险在后代才形成，也不是论文性能结果。四族 D/P/I/A/U、自然模型数据、正式危险阈值、统计功效和跨任务泛化仍需实验。插件是可信 Python；有限 JSON 工具执行不等于任意第三方生成代码的操作系统沙箱。
+
+## 旧实验复现
+
+冻结 P0 的 `run/resume/inspect/export` 与 `research` 入口继续保留；新插件不依赖它们的阶段分支。旧 P0 四检查点、golden 和来源文档未改成新协议。
+
+```bash
+rsi-lab run --config configs/s0_smoke.toml --output runs/legacy-s0
+rsi-lab export --run runs/legacy-s0 --output exports/legacy-s0 --view analysis
+rsi-lab research validate --config configs/task_a_control.toml
+```
+
+旧实验的源码绑定规则仍生效。历史分阶段交接单已删除，其内容可从 Git 历史查阅；原始 proposal 和实现 prompt 保留为来源材料，不作为当前交接文档。

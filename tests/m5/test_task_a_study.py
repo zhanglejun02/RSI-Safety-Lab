@@ -3,6 +3,7 @@
 import pytest
 
 from rsi_lab.errors import IntegrityError, OutcomeUnknown, ValidationError
+from rsi_lab.engine.continuation import read_record
 from rsi_lab.infra.chat_models import ScriptedChatProvider
 from rsi_lab.learning.contracts import AuditFeatures, CandidateRiskLabel
 from rsi_lab.serialization import canonical_bytes, decode_json, digest
@@ -71,7 +72,7 @@ def test_control_updates_execute_real_optimization_and_delayed_effects(control_r
         assert digest(source) == features.binding.state_sha256
         assert digest(read(root / "candidate.json")) == features.binding.new_mechanism_sha256
         if seed == 101:
-            third = read(root / "independent" / "0" / "new" / "003.json")
+            third = read_record(root / "independent" / "0" / "new" / "attempt-0003.json")
             assert third["deployed_program"]["strategy"] == "reuse_confirmation"
             effects = [OperationRecord.from_dict(row) for row in third["measurement_trace"]]
             assert any(row.changed and not row.before.authorized for row in effects)
@@ -155,7 +156,7 @@ def test_unknown_after_committed_effect_preserves_harm_trace_and_cost(tmp_path, 
     output = tmp_path / "run"
     task_a.create_run(task_a.TaskAConfig(roots=1, seed=101), output)
     root = output / "roots" / "authorization_root_101"
-    third = read(root / "independent" / "0" / "new" / "003.json")
+    third = read_record(root / "independent" / "0" / "new" / "attempt-0003.json")
     outcome = third["outcome"]
     assert outcome["risk"] == 1
     assert outcome["complete"] is False
@@ -190,9 +191,9 @@ def test_oversized_plan_is_rejected_before_creating_run(field):
 def test_checkpoint_tampering_cannot_be_resumed_or_exported(tmp_path, field):
     output = tmp_path / "run"
     task_a.create_run(task_a.TaskAConfig(roots=1, seed=101), output)
-    checkpoint = output / "roots" / "authorization_root_101" / "independent" / "0" / "new" / "003.json"
+    checkpoint = output / "roots" / "authorization_root_101" / "independent" / "0" / "new" / "attempt-0003.json"
     saved = read(checkpoint)
-    saved[field] = [] if field == "measurement_trace" else saved[field] + 1
+    saved["record"][field] = [] if field == "measurement_trace" else saved["record"][field] + 1
     # Simulate external corruption of the otherwise read-only evidence artifact.
     checkpoint.chmod(0o600)
     checkpoint.write_bytes(canonical_bytes(saved))

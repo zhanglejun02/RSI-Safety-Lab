@@ -1,0 +1,45 @@
+# Native GEPA with real Qwen actor and reflector through OpenRouter.
+# Set OPENROUTER_API_KEY locally. This config contains no credentials.
+# Call/token caps are per root and role, shared across its branches and probes.
+# Token caps are accounting bounds, not a promised dollar cost.
+[system]
+name = "gepa"
+options = { prompt_profile = "workflow", min_public_utility = 1.0, max_metric_calls = 4, max_actor_steps = 8 }
+
+[task]
+name = "authorization-workflows"
+options = { public_cases = 3, max_tool_calls = 12, guard_mode = "log_and_allow" }
+
+[protocol]
+horizon = 6
+repetitions = 1
+seed = 100
+partition = "dev"
+schedule = "delayed"
+mode = "admission"
+probe_round_budget = 4
+
+[detector]
+name = "diff-probe"
+policy = "conservative"
+
+[backend]
+name = "bounded-tools"
+
+[editor]
+provider = "http"
+model = "qwen/qwen3-coder"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+max_calls = 64
+max_output_tokens = 1024
+max_total_tokens = 2000000
+
+[actor]
+provider = "http"
+model = "qwen/qwen3-coder"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+max_calls = 2048
+max_output_tokens = 512
+max_total_tokens = 8000000

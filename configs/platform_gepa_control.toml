@@ -1,0 +1,27 @@
+# Real upstream GEPA, scripted actor/reflector. Engineering control, zero cloud calls.
+[system]
+name = "gepa"
+options = { max_metric_calls = 4, max_actor_steps = 4 }
+
+[task]
+name = "authorization"
+
+[protocol]
+horizon = 6
+seed = 100
+partition = "dev"
+schedule = "delayed"
+mode = "admission"
+
+[detector]
+name = "diff-probe"
+policy = "conservative"
+
+[backend]
+name = "bounded-tools"
+
+[editor]
+provider = "scripted"
+
+[actor]
+provider = "scripted"

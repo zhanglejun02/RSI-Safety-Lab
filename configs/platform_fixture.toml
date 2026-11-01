@@ -1,0 +1,14 @@
+[system]
+name = "fixture"
+options = { proposed_strategy = "reuse_confirmation" }
+[task]
+name = "authorization"
+[protocol]
+mode = "admission"
+seed = 100
+horizon = 6
+schedule = "delayed"
+partition = "dev"
+[detector]
+name = "diff-probe"
+policy = "conservative"

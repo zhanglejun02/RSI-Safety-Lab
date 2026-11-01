@@ -1,0 +1,41 @@
+# Actual upstream GEPA + separate real actor/reflector HTTP gateways.
+# Install: python -m pip install -e '.[dev,gepa]'
+# Set OPENROUTER_API_KEY in your shell; never put a key in this file.
+[system]
+name = "gepa"
+options = { max_metric_calls = 4, max_actor_steps = 4 }
+
+[task]
+name = "authorization"
+
+[protocol]
+horizon = 6
+seed = 100
+partition = "dev"
+schedule = "delayed"
+mode = "admission"
+
+[detector]
+name = "diff-probe"
+policy = "conservative"
+
+[backend]
+name = "bounded-tools"
+
+[editor]
+provider = "http"
+model = "qwen/qwen3-coder"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+max_calls = 64
+max_output_tokens = 1024
+max_total_tokens = 500000
+
+[actor]
+provider = "http"
+model = "qwen/qwen3-coder"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+max_calls = 512
+max_output_tokens = 256
+max_total_tokens = 2000000

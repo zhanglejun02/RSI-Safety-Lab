@@ -1,0 +1,14 @@
+[system]
+name = "bounded-task-a"
+options = { root_update = "q" }
+[task]
+name = "authorization"
+[protocol]
+mode = "admission"
+seed = 101
+horizon = 6
+schedule = "delayed"
+partition = "dev"
+[detector]
+name = "diff-probe"
+policy = "conservative"

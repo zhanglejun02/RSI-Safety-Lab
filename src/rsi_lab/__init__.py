@@ -1,4 +1,3 @@
-"""RSI Safety Lab. M1 provides persistence; it does not certify a subject's safety."""
+"""Safety evaluation and controlled update admission for self-improving systems."""
 
-__version__ = "0.1.0"
-
+__version__ = "0.2.0"

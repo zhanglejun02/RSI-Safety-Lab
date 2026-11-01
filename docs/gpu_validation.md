@@ -1,69 +1,74 @@
-# GPU 验证交接
+# API 与 GPU 验证
 
-**M5 更新：** Task A 的 API 编辑接口、独立监督、CPU 风险头训练及冻结评价已接通，见 [Task A 使用说明](task_a_learning.md)。`configs/task_a_openrouter.toml` 使用 `qwen/qwen3-coder`，1 个 dev 根最多 21 次请求；设置 `OPENROUTER_API_KEY` 后运行 `research collect` 即可，无需本地 GPU。当前本机未设置凭据，尚未执行真实云端调用。CPU 工程验收为：
+当前平台、控制 fixture、学习基线和真实 GEPA 优化器本身均可在 CPU 上运行。使用 OpenRouter 等云端 API 时，推理由服务商执行，本机不需要 GPU。只有计划自行托管 actor/editor 模型或微调模型时，才需要部署对应 GPU 推理/训练服务。
 
-```bash
-.venv/bin/python scripts/task_a_training_smoke.py --output runs/task-a-training-smoke
-```
-
-下文是 **M4 / P0 的历史验收范围**；其中无独立标签、无评分器的限制只适用于旧 S0/export 命令。新 `research` 命令提供独立的监督契约与训练路径。自托管大模型、预训练编码器及 LoRA 尚未接入，届时再使用下面的 GPU 诊断。
-
-当前交付为 M4 / P0：实际准备、准入、后代探针、受控提交、四个 S0 闭环及只读导出，**M1–M4 均无需 GPU 或 API key**。生成器仍是确定性 Fake/control fixture；没有真实 LLM 推理、训练或封存评价。当前工程验收见 [M4 交接](handoffs/M4.md)，[M3 交接](handoffs/M3.md) 保留受控闭环与进程恢复的历史证据。
-
-## 现在可以执行
-
-在项目根目录运行环境诊断，适用于服务器和本机：
+先完成本地工程验证：
 
 ```bash
-python3 scripts/gpu_preflight.py --output gpu_preflight.json
+python -m pip install -e '.[dev,gepa]'
+python -m pytest -q
+rsi-lab platform run --config configs/platform_gepa_control.toml --output runs/gepa-control
+python scripts/task_a_training_smoke.py --output runs/task-a-learning
 ```
 
-GPU 服务器可要求已安装的 PyTorch 能查询 CUDA 设备：
+GEPA 控制配置使用真正的官方优化器和脚本模型响应，不是模型能力或论文结果。最新测试状态只记录在 [HANDOFF](HANDOFF.md)。
+
+真实 API pilot 使用 `configs/platform_workflow_http.toml`。在运行环境配置服务对应的凭据环境变量（默认 `OPENROUTER_API_KEY`）；不要写入配置、源码或提交日志。actor 和 editor 可分别替换模型、服务端点、调用上限与 token 上限。密钥必须属于所配置的服务，不能因为兼容 Chat Completions 就跨服务混用。
 
 ```bash
-python3 scripts/gpu_preflight.py --require-cuda --output gpu_preflight_cuda.json
+rsi-lab platform validate --config configs/platform_workflow_http.toml
+rsi-lab platform pilot-run --config configs/platform_workflow_http.toml --roots 1 --output runs/gepa-api-pilot
+rsi-lab platform inspect --run runs/gepa-api-pilot
+rsi-lab platform pilot-resume --run runs/gepa-api-pilot
 ```
 
-脚本仅使用标准库及**已经安装**的可选 PyTorch，另读取可用的 `nvidia-smi`。不安装依赖、不下载模型、不执行推理，不覆盖已有输出。输出路径的父目录须已存在。退出码：`0` 表示诊断完成且满足所请求条件；`1` 表示输出失败或路径冲突；`2` 表示 CUDA 条件未满足，诊断 JSON 仍会保存。
+`validate` 不发模型请求；`run` 会消耗 API 额度。预算不足、格式错误和未知服务结果会保留为失败/缺失，不能算安全或正确拒绝。恢复复用已完成请求，未知远端结果不会自动重发。先在 dev 参数验证实际完成率、费用与风险信号，再扩展训练和封存实验。[GEPA 适配细节](external_gepa.md)
 
-输出包括系统/Python、已安装库版本、驱动与显存、PyTorch CUDA 可见性。`nvidia-smi` 有设备但 PyTorch 缺失或查询失败时，`--require-cuda` 仍失败。该检查不证明模型能装入显存、长上下文能运行、吞吐达标或沙箱隔离有效。发送诊断 JSON 即可用于确定后续推理后端和批量规模。
+四组 pilot 每个 root 有一个提案网关作用域，再为四个条件/臂的每次重复各建一组网关；每组均应用配置的 actor/editor 上限，避免先跑的分支耗尽后跑分支的预算。R 个 roots、K 次重复的整批调用上限是 `R × (1 + 4K) × (actor.max_calls + editor.max_calls)`，实际调用通常更少。报告分别保留工具次数、模型调用、返回 token 和服务商计价；这些上限不是费用预估。先减小 horizon/repetitions 测通，再扩展六轮试验。
 
-已安装项目开发环境后，CPU 验收命令为：
+API 并不妨碍记录执行轨迹。平台在本地执行工具，能够记录公开请求、工具输入和输出；现在这些内容会传给 GEPA 反思器。模型隐藏思维链不属于这份执行证据，也不需要为了取得轨迹而更换本地 GPU 推理。
+
+Kimi 的开发配置为 `configs/platform_workflow_kimi.toml`。它通过官方 `https://api.moonshot.cn/v1` 调用账户可用的 `kimi-k2.6`，显式设置 `thinking_mode="disabled"`、`temperature=0.6`、120 秒超时，遵循[官方 K2.6 参数说明](https://platform.kimi.com/docs/guide/kimi-k2-6-quickstart)。这些参数进入不可变运行配置；改动后需要新运行目录。默认其他服务的请求不会新增 Kimi 的 thinking 字段。
+
+显式本地凭据文件示例（占位符不能直接用于调用）：
+
+```text
+MOONSHOT_API_KEY=YOUR_KIMI_API_KEY
+```
+
+设文件权限为 `chmod 600 .env`，然后使用：
 
 ```bash
-.venv/bin/python -m pytest tests/m1 tests/m2 tests/m3
-.venv/bin/python -m pytest
+rsi-lab platform validate --config configs/platform_workflow_kimi.toml --env-file .env
+rsi-lab platform run --config configs/platform_workflow_kimi.toml --env-file .env --output runs/kimi-admission
+rsi-lab platform resume --run runs/kimi-admission --env-file .env
 ```
 
-先重跑上一阶段测试，再验证 M4。四个 CPU 示例入口为：
+加载器不执行命令、不做变量插值，拒绝不允许的变量、重复定义、多行值和宽权限文件；已存在的进程变量优先。密钥不进入模型请求正文、数据库或配置清单。若本机 Python 没有默认 CA 路径，应配置真实可信的 CA 文件（例如这台 macOS 的 `/etc/ssl/cert.pem`）为 `SSL_CERT_FILE`；保持 TLS 证书验证开启，不使用 `verify=False`。
+
+全链路验收使用 `platform run`，包含准备、短探针、决定、受控激活或保留旧版本、独立续演和部署。`pilot-run` 专门比较四组，不执行准入部署。没有经过训练/校准的评分器时，变化候选得到 `inconclusive` 是保守规则允许的结果，不应为“跑通”而强制接受。
+
+真实调用耗时较长时，可只读查看进度，不显示提示词、回复或密钥：
 
 ```bash
-.venv/bin/python -m rsi_lab run --config configs/s0_smoke.toml --output runs/s0-smoke
-.venv/bin/python -m rsi_lab resume --run runs/s0-smoke
-.venv/bin/python -m rsi_lab inspect --run runs/s0-smoke
-.venv/bin/python -m rsi_lab run --config configs/s0_q_pairs.toml --output runs/s0-q-pairs
-.venv/bin/python -m rsi_lab run --config configs/s0_v_fixed_pool.toml --output runs/s0-v-pool
-.venv/bin/python -m rsi_lab run --config configs/s0_probe_admission.toml --output runs/s0-probe
-.venv/bin/python -m rsi_lab export --run runs/s0-q-pairs --output exports/q-pairs --view analysis
-.venv/bin/python -m rsi_lab export --run runs/s0-q-pairs --output exports/q-train --view training
+python scripts/platform_progress.py --run runs/kimi-admission
 ```
 
-它们依次验证原生准入、q 配对、v 固定候选配对和后代探针。q/v 仅使用原生准入，probe 固定 observe。已有运行目录用 `resume`，只读查看用 `inspect`；run/export 均拒绝覆盖。GPU 诊断测试使用模拟设备，CPU 验收不能写成“GPU 已验证”。
+已完成单次准入运行后，可以复用该次根候选补充冻结旧/新对照，无须重新调用优化器：
 
-training 导出目前只有允许 dev 特征和显式缺失的候选标签：`candidate_label=null`、`supervised=false`、`supervision_rows=0`。它不能直接用来训练风险评分器；需要先实现独立候选续演和相应标注协议，不能拿准入决定代替安全标签。
+```bash
+python scripts/frozen_reference.py --source-run runs/kimi-admission \
+  --output runs/kimi-frozen-reference --env-file .env
+```
 
-## 已完成前置条件与后续顺序
+同一命令可恢复。脚本绑定来源证据、引擎和自身源码摘要，使用相同任务参数，来源运行保持不变。它是后补的描述性对照：原生分支沿用原运行共享预算，冻结分支有独立预算；不能冒充预先登记、四臂预算一致的 `pilot-run`。原生缺失仍保留，同分变化仍不进入严格改进主分析。
 
-| 顺序 | 验证内容 | 计算资源与准入条件 |
-|---|---|---|
-| M2（已完成） | 固定 transfer fixture、实际四检查点、q/v 回执、配对候选和独立效果判定；停在 prepare-only | CPU；无需 GPU，尚未进行准入或部署 |
-| M3（已完成） | 原候选准入、K=2/H_probe=2 实际后代、授权物化/提交、拒绝与证据不足、经验恢复、进程终止后恢复、费用与暴露隔离 | CPU；确定性 FakeModelClient 与合成状态，不提供真实模型安全结论 |
-| M4 / P0（当前） | 四个完整 S0 配置、固定 H/合法分母、谱系与复制分区、analysis/training 只读导出及文件摘要 | CPU；没有候选反事实监督，未知预留和缺失保持显式；OS 硬隔离尚未验证 |
-| 任务扩展 | 四族授权任务的确认已消费轨迹；D 第 1–2 轮同风险、第 3 轮分开；Restore 消除差异；P 保持风险和效用 | CPU；使用新的任务协议版本，不能改写旧 golden；至少 30 条开发根谱系检查任务标签 |
-| 固定 LLM pilot | 接入一个固定版本的编辑模型；6–8 个独立根探索有效更新率、风险信号、合法完成率、单位费用和错误率 | 可以使用已授权 API，或本地 GPU；先完成模型适配器和相应执行隔离验收 |
-| 扩展与冻结 | 记录模型版本、提示词、生成参数、预算、随机计划及协议摘要；按实测显存/吞吐确定并发；比较同预算基线 | 调规则只使用开发根；control 与 natural 分开汇报，pilot 数量不是统计功效保证 |
-| 封存评价 | 独立参数至少 10 条根谱系，四模板族参与；按 history_group 分区；运行 D/P/I/A，U 与迁移单列 | 模块和协议冻结后才运行；封存参数只评价一次，不用于选择探针或调参 |
+若使用 GPU 服务器，先检查已有 CUDA 环境：
 
-30 条开发根用于任务协议验收，6–8 根是早期真实模型探索，至少 10 条封存根是预留评价；三者用途不同，不能彼此替代，也不能把同根多个候选当成独立根。M1–M4 / P0 不执行封存实验。
+```bash
+python scripts/gpu_preflight.py --require-cuda --output runs/gpu-preflight.json
+```
 
-第一轮真实模型实验先测固定模型的后代生成，不需要训练基础模型。轻量风险评分器、LoRA、外部 RSI 适配器及 SEABench 迁移应在任务信号和基线验证后分别安排。目前只提供上面的真实可执行命令；未来实验命令在对应实现通过测试后补充。
+该脚本只检查环境，不下载模型、不启动服务、不训练。`git clone` 只下载代码，CUDA、驱动和模型服务仍需独立准备。托管模型需要兼容当前 JSON Chat Completions 网关；其工具遵循和输出格式仍需真实试跑，本仓库没有预先验证特定 4B 模型的可用性。
+
+所有实验目前只操作模拟授权世界。接入会执行任意生成代码的外部系统前，还需要进程/容器隔离后端的单独验收。

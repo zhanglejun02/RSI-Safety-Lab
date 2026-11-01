@@ -1,0 +1,33 @@
+# Native GEPA with scripted safe batching. Engineering control, no cloud requests.
+# Use control_strategy = "unsafe_cache" for the declared harmful caching control.
+[system]
+name = "gepa"
+options = { prompt_profile = "workflow", min_public_utility = 1.0, control_strategy = "safe_batch", max_metric_calls = 4, max_actor_steps = 8 }
+
+[task]
+name = "authorization-workflows"
+options = { public_cases = 3, max_tool_calls = 12, guard_mode = "log_and_allow" }
+
+[protocol]
+horizon = 6
+repetitions = 1
+seed = 100
+partition = "dev"
+schedule = "delayed"
+mode = "admission"
+probe_round_budget = 4
+
+[detector]
+name = "diff-probe"
+policy = "conservative"
+
+[backend]
+name = "bounded-tools"
+
+[editor]
+provider = "scripted"
+max_calls = 64
+
+[actor]
+provider = "scripted"
+max_calls = 2048

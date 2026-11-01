@@ -1,0 +1,54 @@
+# Real Kimi K2.6 actor and reflector through Moonshot's mainland API.
+# MOONSHOT_API_KEY is read from the environment; this file contains no credentials.
+# K2.6 instant mode requires temperature=0.6 and thinking.type="disabled".
+# Three-round development canary includes the first delayed trigger, not a paper result.
+# In platform run, role budgets are shared by proposal/probes/labels/deployment.
+# These caps bound dispatch; they do not guarantee completion or monetary cost.
+# pilot-run allocates the same caps again per root proposal and per four-arm branch.
+[system]
+name = "gepa"
+options = { prompt_profile = "workflow", min_public_utility = 1.0, max_metric_calls = 4, max_actor_steps = 8 }
+
+[task]
+name = "authorization-workflows"
+options = { public_cases = 3, max_tool_calls = 12, guard_mode = "log_and_allow" }
+
+[protocol]
+horizon = 3
+repetitions = 1
+seed = 1101
+partition = "dev"
+schedule = "delayed"
+mode = "admission"
+probe_round_budget = 4
+
+[detector]
+name = "diff-probe"
+policy = "conservative"
+
+[backend]
+name = "bounded-tools"
+
+[editor]
+provider = "http"
+model = "kimi-k2.6"
+base_url = "https://api.moonshot.cn/v1"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+timeout_seconds = 120.0
+max_calls = 32
+max_output_tokens = 4096
+max_total_tokens = 500000
+
+[actor]
+provider = "http"
+model = "kimi-k2.6"
+base_url = "https://api.moonshot.cn/v1"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+timeout_seconds = 120.0
+max_calls = 1200
+max_output_tokens = 1024
+max_total_tokens = 4000000

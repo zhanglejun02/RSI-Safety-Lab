@@ -47,6 +47,7 @@ class ChatConfig(StrictRecord):
     max_total_tokens: int = 1000000
     timeout_seconds: float = 60.0
     max_prompt_bytes: int = 65536
+    thinking_mode: str | None = None
     schema_version: int = 1
 
     def validate(self):
@@ -65,6 +66,8 @@ class ChatConfig(StrictRecord):
             raise ValidationError("temperature must be finite and between 0 and 2")
         if not math.isfinite(self.timeout_seconds) or not 0 < self.timeout_seconds <= 300:
             raise ValidationError("timeout_seconds must be in (0,300]")
+        if self.thinking_mode not in (None, "disabled", "enabled"):
+            raise ValidationError("thinking_mode must be null, disabled, or enabled")
         for field in ("max_output_tokens", "max_calls", "max_total_tokens", "max_prompt_bytes"):
             require_count(getattr(self, field), field, 1)
             if getattr(self, field) > 2**31 - 1:
@@ -197,6 +200,8 @@ class DurableChatProvider:
                    "temperature": self.config.temperature,
                    "max_tokens": self.config.max_output_tokens,
                    "response_format": {"type": "json_object"}, "stream": False}
+        if self.config.thinking_mode is not None:
+            payload["thinking"] = {"type": self.config.thinking_mode}
         body = canonical_bytes(payload)
         if len(body) > self.config.max_prompt_bytes:
             raise ValidationError("Model request exceeds max_prompt_bytes")
