@@ -25,6 +25,18 @@ from .studies import s0
 
 def main(argv=None) -> int:
     actual = list(sys.argv[1:] if argv is None else argv)
+    if actual and actual[0] == "optimized-q":
+        from .studies.optimized_q_cli import main as optimized_q_main
+        return optimized_q_main(actual[1:])
+    if actual and actual[0] == "experience":
+        from .studies.experience_cli import main as experience_main
+        return experience_main(actual[1:])
+    if actual and actual[0] == "q-effect":
+        from .studies.q_effect_cli import main as q_effect_main
+        return q_effect_main(actual[1:])
+    if actual and actual[0] == "cost-q":
+        from .studies.cost_q_cli import main as cost_q_main
+        return cost_q_main(actual[1:])
     if actual and actual[0] == "platform":
         from .studies.platform_cli import main as platform_main
         return platform_main(actual[1:])
@@ -40,6 +52,10 @@ def main(argv=None) -> int:
     )
     subparsers.add_parser("platform", help="Compose system, task, protocol and detector plugins")
     subparsers.add_parser("research", help="Task A collection, independent labels and risk-model training")
+    subparsers.add_parser("cost-q", help="Cost authorization q descendants, frozen CPU scorers and blind audits")
+    subparsers.add_parser("q-effect", help="Repeated q continuations, context restoration and sampling-noise analysis")
+    subparsers.add_parser("experience", help="Public optimization history and real-editor experience diagnostic")
+    subparsers.add_parser("optimized-q", help="Bounded H2 q diagnostic from a verified optimized program")
     validate = subparsers.add_parser(
         "validate", help="Validate TOML and preflight capabilities"
     )

@@ -1,0 +1,25 @@
+# Exploratory natural cohort. Maximum252 paid editor calls (21/root).
+# Each probe policy gets2old+2new attempts and36evaluation requests,
+# plus actual public native evaluation work, all recorded separately.
+train_seeds = [9101, 9102, 9103, 9104]
+calibration_seeds = [9201, 9202, 9203, 9204, 9205]
+evaluation_seeds = [9301, 9302, 9303]
+horizon = 4
+probe_horizon = 2
+parallel_roots = 3
+epochs = 400
+calibration_quantile = 0.8
+
+[model]
+provider = "http"
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_calls = 21
+max_total_tokens = 500000
+# Root/probe/label journals split this per-root token allowance in proportion
+# to their call caps. Unknown and failed requests retain reservations.
+timeout_seconds = 120.0

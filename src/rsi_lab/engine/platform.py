@@ -134,6 +134,19 @@ class PublicTaskEvaluator:
                  "trace_sha256": digest(tuple(env.traces(step) for step in self.plan.rounds)),
                  "public_trajectories_sha256": digest(trajectories),
                  "version_sha256": candidate.version.sha256, "environment_sha256": digest(env.snapshot())}
+        # A deterministic program has no actor model calls. Task plugins may
+        # declare a public fitness objective without changing execution, logs,
+        # independent effect evaluation, or the measured resource dimensions.
+        fitness = getattr(self.task_package, "public_fitness", None)
+        if callable(fitness):
+            objective = fitness(decode_json(canonical_bytes(value)))
+            if type(objective) is not dict or set(objective) != {"score", "objective", "feedback"}:
+                raise ValidationError("Task public fitness must declare score, objective and feedback")
+            import math
+            if (type(objective["score"]) not in (int, float) or not math.isfinite(objective["score"])
+                    or type(objective["objective"]) is not dict or type(objective["feedback"]) is not dict):
+                raise ValidationError("Invalid task public fitness projection")
+            value.update(objective)
         if adapter.snapshot() != candidate:
             raise IntegrityError("Public evaluation changed its candidate")
         return decode_json(canonical_bytes(value))

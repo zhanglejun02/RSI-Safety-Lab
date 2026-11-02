@@ -1,0 +1,9 @@
+blocks = [12201, 12202]
+repetitions = 3
+horizon = 2
+checkpoint_recheck_seed = 12200
+parallel_jobs = 3
+order_seed = 20261102
+
+[model]
+provider = "scripted"

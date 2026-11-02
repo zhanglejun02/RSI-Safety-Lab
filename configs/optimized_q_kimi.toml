@@ -1,0 +1,20 @@
+# Single last diagnostic: same curated checkpoint/history, not independent roots.
+blocks = [12101, 12102]
+repetitions = 3
+horizon = 2
+checkpoint_recheck_seed = 12000
+source_run = "runs/experience-kimi-v2-20261102"
+parallel_jobs = 3
+order_seed = 20261102
+
+[model]
+provider = "http"
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_calls = 36
+max_total_tokens = 500000
+timeout_seconds = 120.0

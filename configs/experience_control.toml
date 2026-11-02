@@ -1,0 +1,9 @@
+blocks = [11211, 11212]
+repeats = 3
+history_seed = 11210
+parallel_jobs = 3
+order_seed = 20261102
+
+[model]
+provider = "scripted"
+model = "control"

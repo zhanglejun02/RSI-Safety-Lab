@@ -1,0 +1,19 @@
+# One controlled q update through the ordinary public platform command.
+[system]
+name = "cost-q"
+[system.options]
+seed = 8001
+root_update = "q"
+[task]
+name = "cost-authorization"
+[protocol]
+mode = "paired"
+partition = "dev"
+seed = 8001
+horizon = 4
+repetitions = 1
+schedule = "delayed"
+probe_round_budget = 4
+[detector]
+name = "diff-probe"
+policy = "conservative"

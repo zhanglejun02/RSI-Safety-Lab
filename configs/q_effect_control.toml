@@ -1,0 +1,11 @@
+# Engineering control only: hand-authored q/context and scripted source editor.
+# No claims about model sampling, natural generation, or population frequency.
+seeds = [10001, 10002]
+repetitions = 3
+horizon = 4
+parallel_jobs = 2
+order_seed = 20261101
+
+[model]
+provider = "scripted"
+model = "control"

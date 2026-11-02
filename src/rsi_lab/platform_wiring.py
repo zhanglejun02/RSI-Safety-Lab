@@ -93,12 +93,54 @@ def _authorization_workflows(options):
     return AuthorizationWorkflowTaskPackage(**options)
 
 
+def cost_q_descriptor(options):
+    _options(options, ("root_update", "seed"))
+    from rsi_lab.contracts import require_count
+    from rsi_lab.subjects.cost_q import SYSTEM_ID, REVISION, TOOL_PROTOCOL
+    require_count(options.get("seed", 100), "seed")
+    if options.get("root_update", "q") not in ("q", "agent"):
+        raise ValidationError("Cost q root update must be q or agent")
+    return SystemDescriptor(SYSTEM_ID, "Public-experience q and bounded-source optimizer",
+        Capabilities(True, True, True, True, True, (TOOL_PROTOCOL,), ("policy", "experience_selector")),
+        "local:cost-q-program", REVISION)
+
+
+def _cost_authorization(options):
+    _options(options, ("guard_mode",))
+    from rsi_lab.tasks.platform_cost_authorization import CostAuthorizationTaskPackage
+    return CostAuthorizationTaskPackage(**options)
+
+
+def _cost_q(directory, providers, options):
+    from rsi_lab.subjects.cost_q import CostQSystemAdapter, make_initial_snapshot, control_memory, control_selector, build_public_memory
+    from rsi_lab.serialization import digest
+    provider, seed = providers["editor"], options.get("seed", 100)
+    if provider.origin.value == "control":
+        memory = control_memory()
+        selector = control_selector("old")
+    else:
+        from rsi_lab.engine.platform import PublicTaskEvaluator
+        from rsi_lab.tasks.platform_cost_authorization import CostAuthorizationTaskPackage
+        text = "Public contract founder execution for archive construction."
+        placeholder = {"bootstrap": {"text": text, "origin": "public_execution", "evidence_sha256": digest(text)}}
+        base = make_initial_snapshot(seed, placeholder)
+        bootstrap = CostQSystemAdapter(directory / "archive-system", provider, base)
+        evaluator = PublicTaskEvaluator(bootstrap, CostAuthorizationTaskPackage(), directory / "archive-public", seed=seed)
+        memory = build_public_memory(evaluator.evaluate(base, "cost-archive"))
+        selector = None
+    adapter = CostQSystemAdapter(directory, provider, make_initial_snapshot(seed, memory, selector))
+    if options.get("root_update", "q") == "q":
+        adapter.propose = adapter.propose_mechanism
+    return adapter
+
+
 def builtin_registry():
     registry = PluginRegistry()
-    for name, factory, descriptor in (("fixture", _fixture, fixture_descriptor), ("bounded-task-a", _bounded, bounded_descriptor), ("gepa", _gepa, gepa_descriptor)):
+    for name, factory, descriptor in (("fixture", _fixture, fixture_descriptor), ("bounded-task-a", _bounded, bounded_descriptor), ("gepa", _gepa, gepa_descriptor), ("cost-q", _cost_q, cost_q_descriptor)):
         registry.register_system(name, factory, descriptor)
     registry.register_task("authorization", _authorization)
     registry.register_task("authorization-workflows", _authorization_workflows)
+    registry.register_task("cost-authorization", _cost_authorization)
     return registry
 
 
@@ -135,6 +177,9 @@ def build_providers(config, directory):
                 else:
                     from rsi_lab.subjects.gepa import scripted_actor_response, scripted_reflection_response
                     responder = scripted_actor_response if role == "actor" else scripted_reflection_response
+            elif config.system.name == "cost-q":
+                from rsi_lab.subjects.cost_q import scripted_cost_response
+                responder = scripted_cost_response
             else:
                 responder = _bounded_control
             # Keep old single-request provider identities compatible. New controls

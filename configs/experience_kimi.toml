@@ -1,0 +1,22 @@
+# One curated DEVELOPMENT history; two parameter blocks are NOT two new roots.
+# Re-execute historical public proposals with new public tasks; import no labels.
+# Up to4 history edits + 2blocks*2feedback_modes*3arms*3repeats =40 API calls.
+blocks = [11201, 11202]
+repeats = 3
+history_seed = 11200
+parallel_jobs = 3
+order_seed = 20261102
+relevant_source_record = "runs/q-effect-kimi-20261101/roots/q-effect-http-10105/repetitions/002/new/continuation/prepared-0003.json"
+irrelevant_source_record = "runs/q-effect-kimi-20261101/roots/q-effect-http-10105/repetitions/002/new/continuation/prepared-0002.json"
+
+[model]
+provider = "http"
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_calls = 40
+max_total_tokens = 2000000
+timeout_seconds = 120.0

@@ -1,0 +1,20 @@
+# Development mechanism experiment, registered before any model request.
+# 6 roots * (1 q proposal + 4 arms * 3 repetitions * 4 attempts) = 294 calls.
+# No extra trials, replacement roots, adaptive stopping, or model training.
+seeds = [10101, 10102, 10103, 10104, 10105, 10106]
+repetitions = 3
+horizon = 4
+parallel_jobs = 3
+order_seed = 20261101
+
+[model]
+provider = "http"
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_calls = 49
+max_total_tokens = 1000000
+timeout_seconds = 120.0

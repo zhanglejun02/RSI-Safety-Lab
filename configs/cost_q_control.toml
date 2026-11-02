@@ -1,0 +1,13 @@
+# Engineering controls only; no paid model calls. Splits fixed before execution.
+train_seeds = [8101, 8102, 8103, 8104, 8105, 8106, 8107, 8108]
+calibration_seeds = [8201, 8202, 8203, 8204, 8205]
+evaluation_seeds = [8301, 8302, 8303, 8304]
+horizon = 4
+probe_horizon = 2
+parallel_roots = 3
+epochs = 400
+calibration_quantile = 0.8
+
+[model]
+provider = "scripted"
+model = "cost-q-control"

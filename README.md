@@ -4,7 +4,7 @@
 
 核心研究问题是：**机制更新通过当前检查后，是否增加后续后代的风险，以及有限预算的探针能否提前识别这种风险。** 系统不必具有统一的 q/v/s 结构，也不要求固定的大小模型组合。
 
-当前可接入三种实现：确定性授权 fixture、闭合 JSON 策略的 Task A，以及调用官方优化器的 **GEPA**。GEPA 是 [RSIHub 选用的系统之一](https://github.com/simple-agent-lab/RSIHub/tree/d6554299c58bf0fe2db04ddda0277f9db67ea680)；本项目接入其提示词改进过程，尚未复现 RSIHub 的任务配置或成绩。[接入范围与固定版本](docs/external_gepa.md)
+当前可接入确定性授权 fixture、闭合 JSON 策略的 Task A、真实受限源码的 q 优化系统，以及调用官方优化器的 **GEPA**。前三者为本地参考系统。GEPA 是 [RSIHub 选用的系统之一](https://github.com/simple-agent-lab/RSIHub/tree/d6554299c58bf0fe2db04ddda0277f9db67ea680)；本项目接入其提示词改进过程，尚未复现 RSIHub 的任务配置或成绩。[接入范围与固定版本](docs/external_gepa.md)
 
 ## 安装和最小运行
 
@@ -25,6 +25,84 @@ python -m pytest -q
 ```
 
 `run` 拒绝覆盖已有目录，`resume` 恢复同一配置和实现，`inspect` 不推进实验。源码或协议改变后需要新运行，不能静默续接旧证据。
+
+## 已优化程序上的最后一次 q 诊断
+
+`optimized-q` 从历史登记顺序中的首个公开合格、成本改善的真实程序检查点出发，先做无模型的公开复验；不合格直接停止，不按独立风险更换起点。复验后，同一检查点、状态和档案下固定相关/等字节无关/无关不变采样三臂，通过公共续演内核各做两次真实编辑、验证和选择。完整安全契约与当前反馈保留。
+
+```bash
+rsi-lab optimized-q run --config configs/optimized_q_control.toml --output runs/optimized-q-control
+rsi-lab optimized-q run --config configs/optimized_q_kimi.toml --env-file .env --output runs/optimized-q-kimi
+rsi-lab optimized-q inspect --run runs/optimized-q-kimi
+rsi-lab optimized-q resume --run runs/optimized-q-kimi --env-file .env
+```
+
+自然配置固定2个参数block×3臂×3条H2轨迹，共最多36次模型请求、500,000 token。所有轨迹共享事务式预算账本，使用不同请求身份独立采样；未知响应不重试，拒绝也计尝试。token采用调用前保守预留、实际用量结算，服务超报会阻止后续派发。源码和公开历史随新运行封存，旧运行不改写；首次创建需要配置指定的历史开发工件，恢复只读新运行内的冻结输入。
+
+唯一主要比较是终末实际采用程序的风险差；中途违规、所有提案效果、合法效用及相对已优化检查点的新公开成本收益分别报告。统计单位是完整轨迹，两个参数block并非独立历史根。这是控制来源q上下文干预，不是自然q优化或定向恢复确认；未达到预设条件即暂停此配置，不自动扩量、训练或转向下一任务。实测结论统一见 [HANDOFF](docs/HANDOFF.md)。
+
+## 真实优化经验与编辑行为诊断
+
+`experience` 先检查历史经验是否有实际作用。经验包含程序修改、公开请求和工具轨迹、检查结果，以及后续修复与验证；完整原始证据保存，模型只收到带来源哈希的确定性有界投影。修复反馈在预算内优先展示当前失败的公开用例，再补通过用例，保留选中位置和截断说明，不把模型推测写成事实。
+
+```bash
+# 工程控制，不调用真实模型
+rsi-lab experience run --config configs/experience_control.toml --output runs/experience-control
+# 已有开发提案作为线索，在新公开任务上实际收集修复/优化历史
+rsi-lab experience run --config configs/experience_kimi.toml --env-file .env --output runs/experience-kimi
+rsi-lab experience inspect --run runs/experience-kimi
+rsi-lab experience resume --run runs/experience-kimi --env-file .env
+```
+
+自然配置引用已保存的历史开发模型提案；在另一环境运行前，需要将源记录路径改为当地真实提案工件。历史发现指导了源程序的选择，故来源标记为 `curated_development`；旧独立评价标签不进入经验。相关条目必须在新公开任务上观察到失败并验证修复，无关条目必须有实际的请求内成本改善。若条件不成立，运行以 `no_verified_history_stop` 结束，不虚构经验或自动扩量。
+
+历史冻结后，在相同程序检查点比较相关经验、无关经验和重复无关经验的独立采样对照（sham）。两种输入方式同时运行：`full` 保留完整契约、源码、公开汇总及预算内的当前详细轨迹；`fixed_feedback` 保留相同契约、源码和汇总，只移除当前详细轨迹。历史由 q 选入，安全契约始终保留。相关/无关条目通过显式中性填充匹配**实际序列化上下文的 UTF-8 字节数**，原始文本长度可能因 JSON 转义而不同，不声称 token 相等。
+
+默认上限为4次历史编辑加36次诊断编辑，共40次 Kimi 调用、2,000,000 token，无需GPU。两个参数 block 共享一条经过选择的历史来源，**不是两条独立根谱系**。报告分别保存所有可执行提案与原生实际采用程序的效果；被拒绝的危险提案不能充当已部署违规，无效/缺失提案也不计为安全。授权版本查询等中间行为来自真实调用日志，最终风险仍由独立执行效果判定，查询过版本并不证明使用正确。
+
+`total_task_work` 将物理执行资源、诊断编辑/确认激活与历史编辑分别记账；原生接受不直接等同于已激活或源码实际改变，未知调用与缺失回执单列。旧登记运行若需要解释性修正，使用绑定原汇总哈希的独立文件，原始报告保持不变。
+
+本入口不自动启动长程 q 增险确认、公开 q 搜索或模型训练。单条经验干预和公开 q 搜索另有控制验收过的 Python 接口：`build_targeted_interventions(...)` 只替换新 q 的一个选中槽，并与等字节无关替换及新 q 不变采样比较；`evaluate_public_q_candidates(...)` 让登记的 q 候选实际驱动编辑、验证和激活，按公开正确性、成本收益及优化成功率选择。搜索未知时保留旧 q 并输出 `inconclusive`，同分保留旧 q，试验中生成的程序和状态不继承回根候选。这些接口尚不代表真实 q 优化或恢复效果已经成立；最新实测结论统一见 [HANDOFF](docs/HANDOFF.md)。
+
+## q 作用、重复续演与恢复干预
+
+`q-effect` 用现有授权成本任务和公共续演内核，研究 q 是否改变真实程序后代及其风险。四臂为旧 q、新 q、恢复旧选中经验的 q，以及保持旧 q 不变的独立采样对照。恢复不改源码、档案或授权规则。每根固定任务参数，多次独立模型续演；拒绝同样计入尝试。原生通过只证明 q 格式有效且当前程序正确，不意味着 q 已提高优化收益。
+
+```bash
+rsi-lab q-effect run --config configs/q_effect_control.toml --output runs/q-effect-control
+rsi-lab q-effect run --config configs/q_effect_kimi.toml --env-file .env --output runs/q-effect-kimi
+rsi-lab q-effect inspect --run runs/q-effect-kimi
+rsi-lab q-effect resume --run runs/q-effect-kimi --env-file .env
+```
+
+自然配置为 6 条新开发根 × 4 臂 × 3 次重复 × 4 个后代尝试，加每根 1 次 q 提案，上限 294 次 Kimi 调用、6,000,000 token。模型请求分开记账，不共享响应；先冻结全部候选与恢复规则，再继续演化。末代程序在未进入编辑器反馈的新公开参数上复验；公开正确性失败的低成本不计为收益。
+
+输出 `report.md`、不可变 `summary.json`、四臂轨迹、原始 old/new 的 K 次 `CandidateRiskLabel`、`input-equivalence.json` 与真实调用日志。统计按根等权，重复不当新根；主检验固定为增险→恢复，分别检验根间差异与根内模型采样，次要比较作多重校正。缺失和无变化候选保留，原生无效候选不进入合格变更主分析。这是开发机制实验，不是封存成绩；没有重训评分器，也不能把这些独立长程标签用作在线短探针。
+
+完成后可用 `python scripts/verify_q_effect.py --run runs/q-effect-kimi --output runs/q-effect-verification.json` 从实际后代源码重放独立请求，并禁止模型生成来恢复整批，核对报告字节一致。源码变化后先在独立环境安装该运行归档的 wheel；不要用新实现覆盖原结果。无需 GPU 或 API 密钥即可复核已完成记录。
+
+## q 更新、真实程序后代与学习式准入
+
+授权成本任务现可通过公共 `SystemAdapter`／`TaskPackage` 接口执行。根更新只改变经验选择 q；旧、新两臂固定各自 q，让同一个编辑模型继续提出实际 `handle` 源码，执行公开验证并按模拟服务成本选择。经验数量和上下文字节上限保持不变，记录真正进入编辑器的经验和实际执行版本。自然经验来自 founder 的公开工具轨迹；手写危险经验只进入控制队列。
+
+```bash
+# 单个控制更新接公共平台；无真实模型调用
+rsi-lab platform run --config configs/platform_cost_q.toml --output runs/platform-cost-q
+# 训练/校准/新评价根全链路控制；CPU，无真实模型调用
+rsi-lab cost-q run --config configs/cost_q_control.toml --output runs/cost-q-control
+# Kimi 小规模自然队列：4训练根、5校准根、3新评价根
+rsi-lab cost-q run --config configs/cost_q_kimi.toml --env-file .env --output runs/cost-q-kimi
+rsi-lab cost-q inspect --run runs/cost-q-kimi
+rsi-lab cost-q resume --run runs/cost-q-kimi --env-file .env
+```
+
+自然配置最多252次编辑请求，每根21次；每根500,000 token上限按根提案、三个探针和独立续演的调用额度拆分，整批至多6,000,000 token。实际用量及未知请求单列；这些上限不是费用估计。程序执行和首版评分器训练均不需要GPU。
+
+探针为普通、撤销、跨授权组合三种固定计划，每种最多旧/新各2次改进尝试、共36个评价请求；公开原生验证还会消耗额外请求和服务调用，全部计入总账。独立标签旧/新各继续改进4次，前两次普通、后两次跨授权/撤销；每次含3条流、每流3请求。缓存按流重置，跨代保存程序、q和证据。**改进尝试、激活版本数、请求数是三个计数轴**；这不是原30选8测试池的完整论文协议。
+
+同一候选比较当前检查、静态规则、普通前瞻、随机探针、机制差异规则及全部拒绝；三种CPU评分器分别读取静态信息、短探针或二者。探针选择依据实际入选经验的变化和公开事实，属于固定启发式。学习评分与机制探针规则共享同一份证据；物理调用只计费一次，各方法的预算另列。当前轻量模型使用哈希文本和四个回归头，不是LLM微调。
+
+训练、校准、评价按根分区；冻结三个模型后才开始新评价根，每根先保存在线决定再运行独立标签。默认校准分位数0.8是预先固定的小样本经验设置，不能当作安全保证。缺失、no-op与拒绝均保留；主分析限原生合格且q实际变化的候选。`enforce`使用更完整的当前授权状态，作为单独运行时对照，其额外检查计算成本尚未建模。当前评价是固定候选的准入比较，并验证一次受控提交；持续逐轮外部准入、v更新和跨系统泛化仍未完成。最新实测结果见 [HANDOFF](docs/HANDOFF.md)。
 
 运行第一个外部系统：
 
