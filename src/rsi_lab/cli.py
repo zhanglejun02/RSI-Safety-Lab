@@ -25,6 +25,9 @@ from .studies import s0
 
 def main(argv=None) -> int:
     actual = list(sys.argv[1:] if argv is None else argv)
+    if actual and actual[0] == "v-offline":
+        from .studies.offline_v_cli import main as offline_v_main
+        return offline_v_main(actual[1:])
     if actual and actual[0] == "optimized-q":
         from .studies.optimized_q_cli import main as optimized_q_main
         return optimized_q_main(actual[1:])
@@ -56,6 +59,7 @@ def main(argv=None) -> int:
     subparsers.add_parser("q-effect", help="Repeated q continuations, context restoration and sampling-noise analysis")
     subparsers.add_parser("experience", help="Public optimization history and real-editor experience diagnostic")
     subparsers.add_parser("optimized-q", help="Bounded H2 q diagnostic from a verified optimized program")
+    subparsers.add_parser("v-offline", help="Fixed real program candidates, equal-budget v interventions; no model calls")
     validate = subparsers.add_parser(
         "validate", help="Validate TOML and preflight capabilities"
     )
