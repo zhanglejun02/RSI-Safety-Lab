@@ -13,6 +13,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]
 gepa = ["gepa==0.1.4"]
+openevolve = ["openevolve @ https://codeload.github.com/algorithmicsuperintelligence/openevolve/tar.gz/73448d715968b3578d8458b16295e827edd2b6bf"]
 
 [project.scripts]
 rsi-lab = "rsi_lab.cli:main"
@@ -22,6 +23,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 rsi_lab = ["data/*.json"]
+"rsi_lab.tasks.retail_vendor" = ["LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

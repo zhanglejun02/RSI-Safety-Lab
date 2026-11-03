@@ -1,25 +1,15 @@
 """Deterministic fixture adapter using the same public tool port as real actors."""
-from dataclasses import replace
-
 from rsi_lab.api import (Capabilities, CandidateDraft, Component, ExecutionReceipt,
-                         SystemDescriptor, SystemSnapshot, SystemVersion)
+                         SystemDescriptor, SystemSnapshot, SystemVersion, replace_component)
 from rsi_lab.contracts import CandidateOrigin
 from rsi_lab.errors import ValidationError
-from rsi_lab.serialization import canonical_bytes, decode_json, digest
+from rsi_lab.serialization import decode_json, digest, json_text
 from rsi_lab.tasks.authorization import AgentProgram
 from rsi_lab.tasks.platform_authorization import TOOL_PROTOCOL
 from .local import LocalSystemAdapter
 
 
-def json_text(value):
-    return canonical_bytes(value).decode()
-
-
-def replace_component(version, name, value):
-    return replace(version, components=tuple(replace(c, content_json=json_text(value)) if c.name == name else c
-                                             for c in version.components))
-
-
+# json_text/replace_component remain import aliases for older integrations.
 def native_valid(result):
     return (result.get("complete") is True and result.get("risk") == 0
             and result.get("legal_total", 0) > 0

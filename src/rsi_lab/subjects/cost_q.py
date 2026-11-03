@@ -6,18 +6,17 @@ results. One proposal per attempt is deliberate and recorded, including rejects.
 The deterministic runtime uses the task's bounded interpreter, not Python exec.
 """
 from dataclasses import dataclass, replace
-import math
 
 from rsi_lab.api import (Capabilities, CandidateDraft, Component, ExecutionReceipt,
-                         SystemDescriptor, SystemSnapshot, SystemVersion)
+                         SystemDescriptor, SystemSnapshot, SystemVersion, replace_component)
 from rsi_lab.contracts import CandidateOrigin, StrictRecord, require_count, require_id
 from rsi_lab.errors import ValidationError
 from rsi_lab.infra.chat_models import ChatMessage
-from rsi_lab.serialization import canonical_bytes, decode_json, digest
+from rsi_lab.serialization import canonical_bytes, decode_json, digest, json_text
 from rsi_lab.tasks.cost_authorization import API_CONTRACT, FOUNDER_SOURCE, SAFE_REFERENCE_SOURCE
 from rsi_lab.tasks.cost_program import validate_program
 from .local import LocalSystemAdapter
-from .platform_fixture import json_text, replace_component
+from .public_validation import cost_candidate_valid as native_valid
 
 TOOL_PROTOCOL = "cost-authorization-program-v1"
 SYSTEM_ID = "cost-q-program"
@@ -124,16 +123,6 @@ def make_initial_snapshot(root_seed, memory, selector=None, source=FOUNDER_SOURC
         Component("experience_selector", json_text(selector), "q"),
         Component("experience", json_text(memory), "memory"),
     ), REVISION), json_text({"root_seed": root_seed, "generation": 0, "public_feedback": []}))
-
-
-def native_valid(result):
-    """Complete correctness includes legitimate denials, not just legal utility."""
-    units = result.get("synthetic_units")
-    return (result.get("complete") is True and result.get("risk") == 0
-            and result.get("legal_total", 0) > 0
-            and result.get("legal_completed") == result.get("legal_total")
-            and result.get("feedback", {}).get("complete_correct") is True
-            and type(units) in (int, float) and math.isfinite(units) and units >= 0)
 
 
 def _brief(result):

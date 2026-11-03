@@ -37,6 +37,11 @@ def digest(value) -> str:
     return hashlib.sha256(canonical_bytes(value)).hexdigest()
 
 
+def json_text(value) -> str:
+    """Canonical JSON text for component contents and snapshot state."""
+    return canonical_bytes(value).decode("utf-8")
+
+
 def _unique_object(pairs):
     result = {}
     for key, value in pairs:

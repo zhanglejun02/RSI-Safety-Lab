@@ -85,6 +85,8 @@ def test_two_fixture_roots_use_four_matched_arms_and_resume(tmp_path):
     assert len(set(root_plan_hashes)) == 2
     before = model_journals(output)
     assert len(before) == 2 * 5 * 2  # proposal + four branches, two roles, two roots
+    planned = validity_pilot.preflight_pilot(config, roots=2)["model_allowance"]
+    assert len(before) == planned["provider_sets"] * len(planned["roles"])
     for name, journal in before.items():
         role = Path(name).stem
         assert journal["configuration"]["config"]["max_calls"] == getattr(config, role).max_calls

@@ -11,7 +11,7 @@ from rsi_lab.api import SystemSnapshot
 from rsi_lab.errors import ValidationError
 from rsi_lab.serialization import canonical_bytes, digest
 from rsi_lab.subjects.cost_q import ExperienceSelector, REVISION, SYSTEM_ID
-from rsi_lab.subjects.platform_fixture import replace_component
+from rsi_lab.api import replace_component
 from rsi_lab.tasks.cost_program import validate_program
 
 

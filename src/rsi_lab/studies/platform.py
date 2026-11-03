@@ -16,8 +16,8 @@ from rsi_lab.learning.contracts import AuditFeatures, CandidateRiskLabel, Traini
 from rsi_lab.learning.data import write_dataset
 from rsi_lab.learning.model import load_model
 from rsi_lab.platform_config import PlatformConfig
-from rsi_lab.platform_wiring import builtin_registry, build_providers
-from rsi_lab.serialization import digest, primitive
+from rsi_lab.platform_wiring import builtin_registry, build_providers, model_budget_plan
+from rsi_lab.serialization import digest
 
 
 def preflight(config, registry=None):
@@ -32,6 +32,7 @@ def preflight(config, registry=None):
         load_model(Path(config.detector.model_path))
     return {"valid": True, "system": descriptor, "task_protocol": tasks.tool_protocol,
             "mode": config.protocol.mode, "backend": config.backend.name,
+            "model_allowance": model_budget_plan(config),
             "arbitrary_code_execution": False, "hard_isolation_verified": False,
             "note": "Trusted Python plugins; bounded model text/tools. Validation makes no model call."}
 
@@ -133,7 +134,8 @@ def resume_run(output, *, registry=None, provider_factory=None):
     registry = registry or builtin_registry()
     config, manifest, scorer = _load(output, registry)
     previous_summary = inspect_run(output) if (output / "summary.json").exists() else None
-    providers = (provider_factory or build_providers)(config, output / "models")
+    providers = (provider_factory(config, output / "models") if provider_factory else
+                 build_providers(config, output / "models", registry=registry))
     adapter = registry.build_system(config, output / "main" / "system", providers)
     if previous_summary and adapter.snapshot().sha256 != previous_summary["active_snapshot_sha256"]:
         raise IntegrityError("Actual active state differs from completed report")

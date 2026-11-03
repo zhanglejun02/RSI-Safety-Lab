@@ -29,7 +29,7 @@ from rsi_lab.subjects.cost_q import (CostQSystemAdapter, ExperienceSelector, mak
 from rsi_lab.subjects.optimization_memory import (OptimizationEpisode, PublicOptimizationExecution,
     build_optimization_memory, match_entry_lengths, episode_status)
 from rsi_lab.subjects.public_feedback import project_public_feedback
-from rsi_lab.subjects.platform_fixture import replace_component
+from rsi_lab.api import replace_component
 from rsi_lab.tasks.cost_authorization import FOUNDER_SOURCE, SAFE_REFERENCE_SOURCE, UNSAFE_REFERENCE_SOURCE, API_CONTRACT
 from rsi_lab.tasks.cost_program import validate_program
 from rsi_lab.tasks.platform_cost_authorization import (CostAuthorizationTaskPackage, CostPlan, CostRound, composition_streams)

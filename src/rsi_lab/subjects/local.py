@@ -3,12 +3,11 @@
 Only inherited system state lives here; proposals use separate workspaces. This
 base is not an OS sandbox and is not a remote exactly-once implementation.
 """
-from contextlib import contextmanager, closing
 from pathlib import Path
-import sqlite3
 from rsi_lab.api import SystemSnapshot, ActivationCommand, ActivationReceipt
 from rsi_lab.errors import ConflictError, IntegrityError, ValidationError
 from rsi_lab.infra.artifacts import _checked_path
+from rsi_lab.infra.sqlite import durable_transaction
 from rsi_lab.serialization import canonical_bytes, decode_json, digest
 
 
@@ -27,15 +26,8 @@ class LocalSystemAdapter:
                 raise ConflictError("Adapter directory initialized from a different snapshot")
             db.execute("INSERT OR IGNORE INTO system_state VALUES(1,?,?)", (initial_snapshot.sha256, canonical_bytes(initial_snapshot)))
 
-    @contextmanager
     def _db(self):
-        _checked_path(self.path)
-        for suffix in ("-wal", "-shm", "-journal"):
-            _checked_path(Path(str(self.path) + suffix))
-        with closing(sqlite3.connect(self.path, timeout=30)) as db, db:
-            db.execute("PRAGMA synchronous=FULL")
-            db.execute("BEGIN IMMEDIATE")
-            yield db
+        return durable_transaction(self.path)
 
     @staticmethod
     def _snapshot(db):

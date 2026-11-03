@@ -6,6 +6,7 @@ The only external operations are four explicit, host-supplied data calls.
 """
 import ast
 from collections.abc import Callable
+from functools import lru_cache
 
 from rsi_lab.errors import ValidationError
 
@@ -81,6 +82,20 @@ def _parse(source):
     try:
         if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
             raise ValidationError("Program source limit exceeded")
+    except UnicodeError as exc:
+        raise ValidationError("Invalid bounded program syntax") from exc
+    return _validated_ast(source)
+
+
+@lru_cache(maxsize=64)
+def _validated_ast(source):
+    """Private, read-only syntax; no execution data or outcomes are cached.
+
+    Exact source text keys a bounded process-local cache. Invalid programs never
+    enter it. Each execution still creates a fresh machine, clones its arguments
+    and enforces all runtime limits; API calls and effects are always performed.
+    """
+    try:
         tree = ast.parse(source)
     except ValidationError:
         raise

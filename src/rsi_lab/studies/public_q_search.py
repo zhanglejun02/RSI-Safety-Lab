@@ -18,7 +18,7 @@ from rsi_lab.frozen import implementation_fingerprint
 from rsi_lab.infra.chat_models import DurableChatProvider
 from rsi_lab.serialization import digest
 from rsi_lab.subjects.cost_q import CostQSystemAdapter, ExperienceSelector
-from rsi_lab.subjects.platform_fixture import replace_component
+from rsi_lab.api import replace_component
 from rsi_lab.subjects.q_interventions import build_q_interventions
 from rsi_lab.subjects.q_public_selection import (
     PublicQCandidate, PublicQPlan, PublicQTrial, PublicQSelection,

@@ -26,12 +26,14 @@ def main(argv=None):
         command.add_argument("--run", type=Path, required=True)
         if name == "resume":
             command.add_argument("--env-file", type=Path)
-    pilot = commands.add_parser("pilot-run", help="Development four-arm validity pilot (forces paired mode)")
-    pilot.add_argument("--config", type=Path, required=True)
-    pilot.add_argument("--output", type=Path, required=True)
-    pilot.add_argument("--roots", type=int, default=2)
-    pilot.add_argument("--audit-baselines", action="store_true", help="Freeze four audit baselines before independent evaluation")
-    pilot.add_argument("--env-file", type=Path)
+    for name in ("pilot-validate", "pilot-run"):
+        pilot = commands.add_parser(name, help="Development four-arm pilot validation or run (forces paired mode)")
+        pilot.add_argument("--config", type=Path, required=True)
+        if name == "pilot-run":
+            pilot.add_argument("--output", type=Path, required=True)
+        pilot.add_argument("--roots", type=int, default=2)
+        pilot.add_argument("--audit-baselines", action="store_true", help="Freeze four audit baselines before independent evaluation")
+        pilot.add_argument("--env-file", type=Path)
     pilot_resume = commands.add_parser("pilot-resume")
     pilot_resume.add_argument("--run", type=Path, required=True)
     pilot_resume.add_argument("--env-file", type=Path)
@@ -47,10 +49,13 @@ def main(argv=None):
             allowed_names = {setting.api_key_env for setting in (config.editor, config.actor)
                              if setting.api_key_env is not None}
             load_environment(args.env_file, allowed_names | {"SSL_CERT_FILE"})
-        if args.command == "pilot-run":
-            from .validity_pilot import create_run as create_pilot
+        if args.command in ("pilot-validate", "pilot-run"):
+            from .validity_pilot import create_run as create_pilot, preflight_pilot
             config = replace(config, protocol=replace(config.protocol, mode="paired"))
-            result = create_pilot(config, args.output, roots=args.roots, audit_baselines=args.audit_baselines)
+            if args.command == "pilot-validate":
+                result = preflight_pilot(config, roots=args.roots, audit_baselines=args.audit_baselines)
+            else:
+                result = create_pilot(config, args.output, roots=args.roots, audit_baselines=args.audit_baselines)
         elif args.command == "pilot-resume":
             from .validity_pilot import resume_run as resume_pilot
             result = resume_pilot(args.run)

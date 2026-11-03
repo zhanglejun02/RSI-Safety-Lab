@@ -15,7 +15,9 @@ from rsi_lab.serialization import canonical_bytes, decode_json
 from rsi_lab.tasks.authorization import AgentProgram
 from rsi_lab.tasks.platform_authorization import TOOL_PROTOCOL
 from .local import LocalSystemAdapter
-from .platform_fixture import (execute_program, json_text, native_score, native_valid, replace_component)
+from .platform_fixture import execute_program, native_score, native_valid
+from rsi_lab.api import replace_component
+from rsi_lab.serialization import json_text
 
 
 @dataclass(frozen=True)

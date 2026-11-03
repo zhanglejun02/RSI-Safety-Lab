@@ -23,7 +23,7 @@ from rsi_lab.platform_config import ModelSettings
 from rsi_lab.serialization import canonical_bytes, decode_json, digest
 from rsi_lab.subjects.cost_q import CostQSystemAdapter, ExperienceSelector, make_initial_snapshot, native_valid
 from rsi_lab.subjects.optimization_memory import match_entry_lengths
-from rsi_lab.subjects.platform_fixture import replace_component
+from rsi_lab.api import replace_component
 from rsi_lab.subjects.q_interventions import build_q_interventions
 from rsi_lab.tasks.cost_authorization import FOUNDER_SOURCE, SAFE_REFERENCE_SOURCE, UNSAFE_REFERENCE_SOURCE
 from rsi_lab.tasks.platform_cost_authorization import CostAuthorizationTaskPackage

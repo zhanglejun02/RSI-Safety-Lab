@@ -2,7 +2,8 @@
 import math
 
 from rsi_lab.api import SystemDescriptor, Capabilities
-from rsi_lab.api.registry import PluginRegistry
+from rsi_lab.api.registry import PluginRegistry, ScriptedModel
+from rsi_lab.contracts import require_count
 from rsi_lab.errors import ValidationError
 from rsi_lab.infra.chat_models import DurableChatProvider, ScriptedChatProvider, ChatConfig
 from rsi_lab.serialization import decode_json
@@ -136,8 +137,13 @@ def _cost_q(directory, providers, options):
 
 def builtin_registry():
     registry = PluginRegistry()
-    for name, factory, descriptor in (("fixture", _fixture, fixture_descriptor), ("bounded-task-a", _bounded, bounded_descriptor), ("gepa", _gepa, gepa_descriptor), ("cost-q", _cost_q, cost_q_descriptor)):
-        registry.register_system(name, factory, descriptor)
+    for name, factory, descriptor, control in (
+        ("fixture", _fixture, fixture_descriptor, _bounded_scripted_model),
+        ("bounded-task-a", _bounded, bounded_descriptor, _bounded_scripted_model),
+        ("gepa", _gepa, gepa_descriptor, _gepa_scripted_model),
+        ("cost-q", _cost_q, cost_q_descriptor, _cost_scripted_model),
+    ):
+        registry.register_system(name, factory, descriptor, scripted_model=control)
     registry.register_task("authorization", _authorization)
     registry.register_task("authorization-workflows", _authorization_workflows)
     registry.register_task("cost-authorization", _cost_authorization)
@@ -153,7 +159,61 @@ def _bounded_control(request_id, messages):
     return {"schema_version": 1, "strategy": strategy, "lookup": "indexed"}
 
 
-def build_providers(config, directory):
+def _bounded_scripted_model(role, options):
+    return ScriptedModel("control." + role, _bounded_control)
+
+
+def _cost_scripted_model(role, options):
+    from rsi_lab.subjects.cost_q import scripted_cost_response
+    return ScriptedModel("control." + role, scripted_cost_response)
+
+
+def _gepa_scripted_model(role, options):
+    from rsi_lab.subjects import gepa
+    control_id = "control." + role
+    if options.get("prompt_profile") == "workflow":
+        strategy = options.get("control_strategy", "safe_batch")
+        if strategy == "unsafe_cache":
+            responder = (gepa.scripted_unsafe_workflow_actor_response if role == "actor"
+                         else gepa.scripted_unsafe_workflow_reflection_response)
+        else:
+            responder = (gepa.scripted_workflow_actor_response if role == "actor"
+                         else gepa.scripted_workflow_reflection_response)
+        control_id += ".workflow." + strategy
+    else:
+        responder = gepa.scripted_actor_response if role == "actor" else gepa.scripted_reflection_response
+    return ScriptedModel(control_id, responder)
+
+
+def model_budget_plan(config, *, provider_sets=1, scope="shared_per_run"):
+    """Static allowance for this module's default gateways; never a price quote.
+
+    A custom provider_factory must account for its own allocation policy. Sets
+    are upper bounds: failed roots or unused roles can consume less. Token caps
+    are pre-dispatch reservations and cannot guarantee a remote billing ceiling.
+    """
+    require_count(provider_sets, "provider_sets", 1)
+    roles = {}
+    for role, setting in (("editor", config.editor), ("actor", config.actor)):
+        remote = setting.provider == "http"
+        roles[role] = {"provider": setting.provider, "model": setting.model,
+            "provider_sets": provider_sets, "max_calls_per_journal": setting.max_calls,
+            "remote_call_limit_sum": provider_sets * setting.max_calls if remote else 0,
+            "configured_token_limit_sum": provider_sets * setting.max_total_tokens if remote else 0}
+    return {"scope": scope, "applies_to": "default_build_providers_only",
+            "provider_sets": provider_sets, "roles": roles,
+            "remote_call_limit_sum": sum(row["remote_call_limit_sum"] for row in roles.values()),
+            "configured_token_limit_sum": sum(row["configured_token_limit_sum"] for row in roles.values()),
+            "is_expected_usage": False, "monetary_cost": None,
+            "token_limit_kind": "reservation_estimate_not_remote_billing_guarantee"}
+
+
+def build_providers(config, directory, *, registry=None):
+    registry = registry or builtin_registry()
+    # Resolve all control factories before creating any provider journals.
+    controls = {role: registry.scripted_model(config.system.name, role, config.system.options)
+                for role, setting in (("editor", config.editor), ("actor", config.actor))
+                if setting.provider == "scripted"}
     providers = {}
     for role, setting in (("editor", config.editor), ("actor", config.actor)):
         if setting.provider == "http":
@@ -163,30 +223,7 @@ def build_providers(config, directory):
                 temperature=setting.temperature, thinking_mode=setting.thinking_mode,
                 timeout_seconds=setting.timeout_seconds))
         else:
-            if config.system.name == "gepa":
-                if config.system.options.get("prompt_profile") == "workflow":
-                    from rsi_lab.subjects.gepa import (scripted_workflow_actor_response,
-                        scripted_workflow_reflection_response, scripted_unsafe_workflow_actor_response,
-                        scripted_unsafe_workflow_reflection_response)
-                    if config.system.options.get("control_strategy", "safe_batch") == "unsafe_cache":
-                        responder = (scripted_unsafe_workflow_actor_response if role == "actor"
-                                     else scripted_unsafe_workflow_reflection_response)
-                    else:
-                        responder = (scripted_workflow_actor_response if role == "actor"
-                                     else scripted_workflow_reflection_response)
-                else:
-                    from rsi_lab.subjects.gepa import scripted_actor_response, scripted_reflection_response
-                    responder = scripted_actor_response if role == "actor" else scripted_reflection_response
-            elif config.system.name == "cost-q":
-                from rsi_lab.subjects.cost_q import scripted_cost_response
-                responder = scripted_cost_response
-            else:
-                responder = _bounded_control
-            # Keep old single-request provider identities compatible. New controls
-            # bind their behavior into the durable provider's configuration.
-            control_id = "control." + role
-            if config.system.name == "gepa" and config.system.options.get("prompt_profile") == "workflow":
-                control_id += ".workflow." + config.system.options.get("control_strategy", "safe_batch")
-            providers[role] = ScriptedChatProvider(directory / (role + ".sqlite"), responder,
-                                                  max_calls=setting.max_calls, provider_id=control_id)
+            control = controls[role]
+            providers[role] = ScriptedChatProvider(directory / (role + ".sqlite"), control.respond,
+                max_calls=setting.max_calls, provider_id=control.provider_id)
     return providers

@@ -14,7 +14,7 @@ from rsi_lab.errors import ValidationError
 from rsi_lab.learning.contracts import require_sha
 from rsi_lab.serialization import canonical_bytes, digest
 from .cost_q import ExperienceSelector, native_valid
-from .platform_fixture import replace_component
+from rsi_lab.api import replace_component
 from .q_interventions import QInterventions, build_q_interventions
 
 

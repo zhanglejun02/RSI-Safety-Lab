@@ -254,6 +254,11 @@ class PlatformContinuationDriver:
         previous = read_record(self.directory / f"attempt-{index - 1:04}.json")
         return previous["active_snapshot_sha256"]
 
+    def _admission_decision(self, prepared):
+        return AdmissionDecision(prepared.identity, digest({"native": prepared.draft.native_evidence_json}),
+                                 "native-descendant-v1", "accept" if prepared.draft.native_valid else "reject",
+                                 "native_validation_no_recursive_external_audit")
+
     def execute(self, index):
         step, namespace = self.plan.rounds[index - 1], self._namespace(index)
         prepared, decision, activation = None, None, None
@@ -278,9 +283,7 @@ class PlatformContinuationDriver:
                 save_record(proposal_path, prepared)
             if prepared.base.sha256 != expected_base:
                 raise IntegrityError("Prepared descendant is not based on the preceding active snapshot")
-            decision = AdmissionDecision(prepared.identity, digest({"native": prepared.draft.native_evidence_json}),
-                                         "native-descendant-v1", "accept" if prepared.draft.native_valid else "reject",
-                                         "native_validation_no_recursive_external_audit")
+            decision = self._admission_decision(prepared)
         ready_path = self.directory / f"ready-{index:04}.json"
         expected_active = (prepared.draft.candidate.sha256
                            if decision and decision.disposition == "accept" else expected_base)
@@ -339,9 +342,7 @@ class PlatformContinuationDriver:
         prepared = PreparedUpdate.from_dict(read_record(prepared_path)) if prepared_path.exists() else None
         decision, activation = None, None
         if prepared:
-            decision = AdmissionDecision(prepared.identity, digest({"native": prepared.draft.native_evidence_json}),
-                                         "native-descendant-v1", "accept" if prepared.draft.native_valid else "reject",
-                                         "native_validation_no_recursive_external_audit")
+            decision = self._admission_decision(prepared)
         if ready_path.exists():
             saved = read_record(ready_path)["activation"]
             activation = ActivationReceipt.from_dict(saved) if saved else None
@@ -361,7 +362,7 @@ class PlatformContinuationDriver:
 
 def continue_system(adapter, tasks, source_environment, directory, *, seed, family, partition,
                     horizon, schedule, root_id, protocol_sha256, arm, stream, replicate=0,
-                    update_policy="native"):
+                    update_policy="native", driver_type=PlatformContinuationDriver):
     adapter.describe().capabilities.require("paired" if update_policy == "native" else "behavior", tasks.tool_protocol)
     directory = Path(directory)
     initial = adapter.snapshot()
@@ -379,12 +380,14 @@ def continue_system(adapter, tasks, source_environment, directory, *, seed, fami
             source_system.version.upstream_revision != initial.version.upstream_revision):
         raise IntegrityError("Continuation adapter differs from the registered source")
     environment = tasks.create_environment(directory / "environment", source_environment)
-    driver = PlatformContinuationDriver(adapter, tasks, environment, plan, directory,
+    driver = driver_type(adapter, tasks, environment, plan, directory,
         root_id=root_id, protocol_sha256=protocol_sha256, partition=partition,
         arm=arm, stream=stream, replicate=replicate, update_policy=update_policy)
     identity = {"source_sha256": digest(source), "plan": plan,
                 "root": root_id, "protocol": protocol_sha256, "arm": arm, "stream": stream,
                 "replicate": replicate, "update_policy": update_policy}
+    if driver_type is not PlatformContinuationDriver:
+        identity["admission_driver"] = driver_type.__module__ + "." + driver_type.__qualname__
     rows = ContinuationService().run(driver, horizon, directory, identity=identity)
     if rows[-1]["active_snapshot_sha256"] != adapter.snapshot().sha256:
         raise IntegrityError("Continuation final active state differs from its durable receipt")

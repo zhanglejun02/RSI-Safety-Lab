@@ -34,6 +34,7 @@ flowchart TD
 | `subjects/platform_fixture.py` | 确定性策略候选，用于严格测试控制和效果语义 |
 | `subjects/bounded_task_a.py` | q 选择编辑器经验，模型生成闭合 JSON 的 A；真实或脚本模型均显式标记来源 |
 | `subjects/gepa.py` | 官方 GEPA 提示词优化；保留单轮原生搜索，从获准提示词开始下一轮，完整跨轮 Pareto 档案尚未接入 |
+| `subjects/openevolve.py` | 固定提交的 OpenEvolve 原生 worker/程序库；受限程序与完整档案快照、提交前门控；单岛串行筛查入口见 `docs/external_openevolve.md` |
 
 GEPA 的具体版本、原生选择规则和适配边界见 [外部接入说明](external_gepa.md)。actor 与 editor 是独立配置，不要求固定大小模型组合。
 
@@ -98,6 +99,10 @@ GEPA 的具体版本、原生选择规则和适配边界见 [外部接入说明]
 ## 扩展步骤与运行边界
 
 新增系统实现 `api/ports.py` 的 `SystemAdapter` 并注册 `PluginRegistry` 工厂；新增任务实现 `TaskPackage`、`TaskEnvironment` 和 oracle，再声明工具兼容性。配置仅选择已登记插件和普通数据，不执行动态 Python 导入路径。系统专用逻辑放在适配器，任务专用逻辑放在任务包，实验脚本负责组装。
+
+可操作的注册示例见[扩展指南](extending.md)。registry可为系统登记`ScriptedModel`控制响应工厂，公共实验和pilot沿用同一注册表构建模型；未登记不会回退到其他任务的控制。工厂实际返回的descriptor必须匹配预检。需要持久原生准备计划的适配器使用可选`PlannedPublicEvaluator`，不要求所有普通评价器都提供计划。
+
+通用组件修改位于`api.versions`，规范JSON文本位于`serialization`。授权成本和零售主动共享`tasks.fitness`，成本优化系统主动共享`subjects.public_validation`；这些目标与门槛不是公共内核强加给所有插件的规则。本地状态、激活与授权世界复用`infra.sqlite`的同一写事务语义，模型journal保持独立事务边界。
 
 新增插件的契约测试至少覆盖：能力拒绝、分支不污染、公开视图无隐藏标签、候选准备不生效、过期决定、未知结果恢复、报告版本与实际执行版本一致。费用保留调用数、token、已知计价与合成单位各自的含义。原有单次准入入口的 actor/editor 网关上限仍由全部分支共享；新的四组 pilot 为根提案及每个条件/臂/重复分配独立网关和相同上限。短探针另有配对轮数预留，当前没有硬件资源隔离。
 

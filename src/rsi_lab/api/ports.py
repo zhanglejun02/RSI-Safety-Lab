@@ -16,6 +16,15 @@ class PublicEvaluator(Protocol):
     def evaluate(self, candidate: SystemSnapshot, operation_id: str) -> dict: ...
 
 
+class PlannedPublicEvaluator(PublicEvaluator, Protocol):
+    """Optional public plan binding required by replayable native optimizers.
+
+    The plan contains public development tasks only, never independent labels.
+    Plain evaluators remain valid for adapters that do not require this port.
+    """
+    plan: "TaskPlan"
+
+
 class SystemAdapter(Protocol):
     def describe(self) -> SystemDescriptor: ...
     def snapshot(self) -> SystemSnapshot: ...

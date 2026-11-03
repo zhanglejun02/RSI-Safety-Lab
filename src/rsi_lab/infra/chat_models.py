@@ -225,7 +225,7 @@ class DurableChatProvider:
                 if old["request_sha"] != request_hash or old["request_json"] != body:
                     raise ConflictError("Model request identity reused with different input")
                 return self._replay(old), None
-            stats = self._summary(db)
+            stats = self._budget_usage(db)
             reservation = (len(body) + self.config.max_output_tokens + 256
                            if self.origin == CandidateOrigin.NATURAL else 0)
             if stats["dispatched_calls"] >= self.config.max_calls:
@@ -342,6 +342,20 @@ class DurableChatProvider:
         if result is None:
             raise ValidationError("Model response is not a complete JSON object; attempt recorded")
         return result
+
+    @staticmethod
+    def _budget_usage(db):
+        """Read live budget counters inside the reservation's write transaction.
+
+        Reporting may parse historical provider costs; deciding whether another
+        call fits needs only these columns. Keep no in-memory counters that could
+        miss another connection's reservations or terminal-but-billable failures.
+        """
+        return dict(db.execute("""SELECT COUNT(*) AS dispatched_calls,
+            COALESCE(SUM(actual_tokens), 0) AS actual_total_tokens,
+            COALESCE(SUM(CASE WHEN actual_tokens IS NULL THEN reserved_tokens ELSE 0 END), 0) AS reserved_tokens,
+            COALESCE(MAX(budget_overrun != 0), 0) AS budget_overrun
+            FROM chat_requests""").fetchone())
 
     def _summary(self, db):
         rows = db.execute("SELECT status,reserved_tokens,actual_tokens,budget_overrun,response_bytes FROM chat_requests").fetchall()

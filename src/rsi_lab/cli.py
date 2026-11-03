@@ -1,166 +1,27 @@
-"""Offline preparation CLI. Unsupported experiments fail explicitly rather than run fake."""
-
-import argparse
-import json
-import sqlite3
+"""CLI router. New experiments register once; legacy reproduction stays isolated."""
+from importlib import import_module
 import sys
-from pathlib import Path
 
-from .config import load_config
-from .studies import preparation as m2, closed_loop as m3, transition
-from .serialization import decode_json
-from .engine.demo import create_run, inspect_run, resume_run
-from .errors import (
-    BudgetExceeded,
-    ConflictError,
-    LabError,
-    UnsupportedCapability,
-    ValidationError,
-)
-from .serialization import digest, primitive
-from .wiring import doctor_report, preflight
-from .analysis.export import export_run
-from .studies import s0
+# Explicit trusted modules, never executable import paths from configuration.
+SUBCOMMANDS = {
+    "platform": ("platform_cli", "Compose system, task, protocol and detector plugins"),
+    "research": ("research_cli", "Task A collection, independent labels and training"),
+    "cost-q": ("cost_q_cli", "Cost q descendants and frozen CPU scorers"),
+    "q-effect": ("q_effect_cli", "Repeated q continuations and restoration"),
+    "experience": ("experience_cli", "Public optimization history and editor diagnostics"),
+    "optimized-q": ("optimized_q_cli", "Bounded H2 q diagnostic from an optimized program"),
+    "v-offline": ("offline_v_cli", "Fixed real candidates and equal-budget v interventions"),
+    "openevolve-screen": ("openevolve_screen", "Bounded native OpenEvolve suitability screen"),
+    "openevolve-admission": ("openevolve_admission", "Zero-API fixed-candidate admission counterfactuals"),
+    "stress-bench": ("stress_bench", "Build and validate paired development pressure tasks"),
+    "stress-pilot": ("stress_pilot", "Bounded new-root GEPA/OpenEvolve pressure-task screen"),
+}
 
 
 def main(argv=None) -> int:
     actual = list(sys.argv[1:] if argv is None else argv)
-    if actual and actual[0] == "v-offline":
-        from .studies.offline_v_cli import main as offline_v_main
-        return offline_v_main(actual[1:])
-    if actual and actual[0] == "optimized-q":
-        from .studies.optimized_q_cli import main as optimized_q_main
-        return optimized_q_main(actual[1:])
-    if actual and actual[0] == "experience":
-        from .studies.experience_cli import main as experience_main
-        return experience_main(actual[1:])
-    if actual and actual[0] == "q-effect":
-        from .studies.q_effect_cli import main as q_effect_main
-        return q_effect_main(actual[1:])
-    if actual and actual[0] == "cost-q":
-        from .studies.cost_q_cli import main as cost_q_main
-        return cost_q_main(actual[1:])
-    if actual and actual[0] == "platform":
-        from .studies.platform_cli import main as platform_main
-        return platform_main(actual[1:])
-    if actual and actual[0] == "research":
-        from .studies.research_cli import main as research_main
-        return research_main(actual[1:])
-    parser = argparse.ArgumentParser(
-        prog="rsi-lab", description="RSI Safety Lab — safety evaluation and update admission platform"
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser(
-        "doctor", help="Report implemented capabilities; no model calls"
-    )
-    subparsers.add_parser("platform", help="Compose system, task, protocol and detector plugins")
-    subparsers.add_parser("research", help="Task A collection, independent labels and risk-model training")
-    subparsers.add_parser("cost-q", help="Cost authorization q descendants, frozen CPU scorers and blind audits")
-    subparsers.add_parser("q-effect", help="Repeated q continuations, context restoration and sampling-noise analysis")
-    subparsers.add_parser("experience", help="Public optimization history and real-editor experience diagnostic")
-    subparsers.add_parser("optimized-q", help="Bounded H2 q diagnostic from a verified optimized program")
-    subparsers.add_parser("v-offline", help="Fixed real program candidates, equal-budget v interventions; no model calls")
-    validate = subparsers.add_parser(
-        "validate", help="Validate TOML and preflight capabilities"
-    )
-    validate.add_argument("--config", type=Path, required=True)
-    run = subparsers.add_parser("run", help="Run a registered development fixture")
-    run.add_argument("--config", type=Path, required=True)
-    run.add_argument("--output", type=Path, required=True)
-    run.add_argument(
-        "--stop-after",
-        type=int,
-        choices=range(1, 5),
-        default=4,
-        help="Persist this many checkpoints per arm",
-    )
-    resume = subparsers.add_parser(
-        "resume", help="Resume the same stored protocol and identities"
-    )
-    resume.add_argument("--run", type=Path, required=True)
-    inspect = subparsers.add_parser("inspect", help="Read a run without advancing it")
-    inspect.add_argument("--run", type=Path, required=True)
-    export = subparsers.add_parser(
-        "export", help="Read-only research or permitted training feature export"
-    )
-    export.add_argument("--run", type=Path, required=True)
-    export.add_argument("--output", type=Path, required=True)
-    export.add_argument("--view", choices=("analysis", "training"), required=True)
-    args = parser.parse_args(argv)
-    try:
-        if args.command == "doctor":
-            result = doctor_report()
-        elif args.command == "validate":
-            config = load_config(args.config)
-            preflight(config)
-            result = {
-                "valid": True,
-                "resolved_config": config,
-                "config_sha256": digest(config),
-            }
-        elif args.command == "export":
-            result = export_run(args.run, args.output, view=args.view)
-        elif args.command == "run":
-            config = load_config(args.config)
-            preflight(config)
-            if config.stage == "M4":
-                if args.stop_after != 4:
-                    raise ValidationError(
-                        "S0 runs the full lifecycle; --stop-after applies only to M1/M2"
-                    )
-                result = s0.create_run(config, args.output)
-            elif config.stage == "M3":
-                if args.stop_after != 4:
-                    raise ValidationError(
-                        "M3 runs the controlled lifecycle; --stop-after only applies to M1/M2"
-                    )
-                if config.study == "m3_transition":
-                    if args.output.exists():
-                        raise ConflictError("Output exists; use resume")
-                    result = transition.run_transition(args.output)
-                else:
-                    result = m3.create_run(config, args.output)
-            else:
-                run_fn = m2.create_run if config.stage == "M2" else create_run
-                result = run_fn(config, args.output, stop_after=args.stop_after)
-        elif args.command == "resume":
-            manifest = decode_json((args.run / "run_manifest.json").read_bytes())
-            if manifest.get("stage") == "M4":
-                result = s0.resume_run(args.run)
-            elif manifest.get("stage") == "M3":
-                result = (
-                    transition.run_transition
-                    if manifest.get("study") == "m3_transition"
-                    else m3.resume_run
-                )(args.run)
-            else:
-                result = (
-                    m2.resume_run if manifest.get("stage") == "M2" else resume_run
-                )(args.run)
-        else:
-            manifest = decode_json((args.run / "run_manifest.json").read_bytes())
-            if manifest.get("stage") == "M4":
-                result = s0.inspect_run(args.run)
-            elif manifest.get("stage") == "M3":
-                result = (
-                    transition.inspect_transition
-                    if manifest.get("study") == "m3_transition"
-                    else m3.inspect_run
-                )(args.run)
-            else:
-                result = (
-                    m2.inspect_run if manifest.get("stage") == "M2" else inspect_run
-                )(args.run)
-        print(
-            json.dumps(primitive(result), ensure_ascii=False, indent=2, allow_nan=False)
-        )
-        return 0
-    except (LabError, OSError, sqlite3.DatabaseError) as exc:
-        print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
-        if isinstance(exc, UnsupportedCapability):
-            return 3
-        if isinstance(exc, ConflictError):
-            return 4
-        if isinstance(exc, BudgetExceeded):
-            return 5
-        return 2
+    if actual and actual[0] in SUBCOMMANDS:
+        module, _ = SUBCOMMANDS[actual[0]]
+        return import_module("rsi_lab.studies." + module).main(actual[1:])
+    from ._legacy_cli import main as legacy_main
+    return legacy_main(actual)

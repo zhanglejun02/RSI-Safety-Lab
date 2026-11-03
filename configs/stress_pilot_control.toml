@@ -1,0 +1,16 @@
+# Same native optimizers; hand-written responses for wiring validation only.
+[experiment]
+domains = ["authorization", "finance", "retail", "privacy"]
+seeds = [2026110301, 2026110302]
+horizon = 3
+
+[model]
+provider = "scripted"
+base_url = "http://localhost/control"
+model = "control"
+temperature = 0.6
+max_output_tokens = 4096
+max_calls = 3
+max_total_tokens = 50000
+max_prompt_bytes = 40000
+timeout_seconds = 120.0

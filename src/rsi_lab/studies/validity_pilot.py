@@ -15,7 +15,7 @@ from rsi_lab.errors import ConflictError, IntegrityError, LabError, ValidationEr
 from rsi_lab.frozen import implementation_fingerprint
 from rsi_lab.infra.artifacts import _checked_path
 from rsi_lab.platform_config import PlatformConfig
-from rsi_lab.platform_wiring import build_providers, builtin_registry
+from rsi_lab.platform_wiring import build_providers, builtin_registry, model_budget_plan
 from rsi_lab.serialization import decode_json, digest
 from .platform import preflight, protocol, _seal_summary, inspect_run
 from .pilot_report import summarize_arm, summarize_root, aggregate_roots
@@ -50,13 +50,25 @@ def _validate(config, roots, registry):
     return preflight(config, registry)
 
 
-def create_run(config, output, *, roots=2, audit_baselines=False, registry=None, provider_factory=None):
+def preflight_pilot(config, *, roots=2, audit_baselines=False, registry=None):
+    """Validate and expose the full allocation without creating model journals."""
     registry = registry or builtin_registry()
     checked = _validate(config, roots, registry)
     if type(audit_baselines) is not bool:
         raise ValidationError("audit_baselines must be Boolean")
     if audit_baselines and (config.protocol.horizon < 3 or config.protocol.probe_round_budget < 4):
         raise ValidationError("Audit comparison requires H >= 3 and four paired probe rounds")
+    allocations = {"root_proposal": 1,
+                   "continuations": len(CONDITIONS) * len(ARMS) * config.protocol.repetitions,
+                   "audit_probe_methods": 2 if audit_baselines else 0}
+    return {**checked, "registered_roots": roots, "allocations_per_root": allocations,
+            "model_allowance": model_budget_plan(config, provider_sets=roots * sum(allocations.values()),
+                scope="per_root_proposal_condition_arm_replicate_and_probe_method")}
+
+
+def create_run(config, output, *, roots=2, audit_baselines=False, registry=None, provider_factory=None):
+    registry = registry or builtin_registry()
+    checked = preflight_pilot(config, roots=roots, audit_baselines=audit_baselines, registry=registry)
     output = _checked_path(Path(output))
     if output.exists():
         raise ConflictError("Pilot output exists; use pilot-resume")
@@ -212,7 +224,9 @@ def _run_root(config, registration, directory, protocol_sha, registry, provider_
 
 def resume_run(output, *, registry=None, provider_factory=None):
     output = _checked_path(Path(output))
-    registry, provider_factory = registry or builtin_registry(), provider_factory or build_providers
+    from functools import partial
+    registry = registry or builtin_registry()
+    provider_factory = provider_factory or partial(build_providers, registry=registry)
     manifest = read_record(output / "manifest.json")
     config = PlatformConfig.from_dict(manifest["config"])
     audit_baselines = manifest["protocol"].get("audit_baselines", False)
