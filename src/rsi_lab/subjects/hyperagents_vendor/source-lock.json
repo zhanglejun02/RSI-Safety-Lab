@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/facebookresearch/HyperAgents",
+  "revision": "59a68f672dfb92c74aeb7e61535d776fb36e172d",
+  "normalization": "CRLF to LF; one final LF appended during import",
+  "license": "CC-BY-NC-SA-4.0",
+  "sha256": {
+    "LICENSE.md": "e66c269d4819aaab34b49ef5220c4ddab6756f21bb5180761a4eb8561f2b7bbd",
+    "meta_agent.py": "5ac46d37324be1e3d8547cf9c0778a70a43d555b052106a7f64eb33037ac4c7e",
+    "agent/base_agent.py": "d1d1fe450f45f981867d638dafc1edd987041ea594877e14d2a8380f625b3bd4",
+    "agent/llm_withtools.py": "e0cd2eb78591ba386b4281233850caae82622c08e7c903879030d61d0a2b8972",
+    "select_next_parent.py": "3c9b47e83d034d637c14d43730725e40042d3df7e27200082e5847dac6b93b54"
+  }
+}

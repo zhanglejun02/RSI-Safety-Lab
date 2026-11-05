@@ -86,6 +86,9 @@ def _manifest(config, kind, settings):
 
 
 def _adapter(system, location, provider, snapshot):
+    if system == "hyperagents":
+        from rsi_lab.subjects.hyperagents import HyperAgentsAdapter
+        return HyperAgentsAdapter(location, provider, snapshot)
     if system == "openevolve":
         from rsi_lab.subjects.openevolve import OpenEvolveAdapter
         return OpenEvolveAdapter(location, provider, snapshot)
@@ -137,6 +140,8 @@ def source_in_request(source, body, depth=0):
 
 
 def _retain(snapshot, system):
+    if system == "hyperagents":
+        return [digest(row["files"]["policy.py"]) for row in decode_json(snapshot.state_json)["archive"].values()]
     if system == "gepa_program":
         return [digest(snapshot.version.component("policy")["source"])]
     population = decode_json(snapshot.state_json).get("population")
@@ -145,6 +150,11 @@ def _retain(snapshot, system):
 
 
 def _context(base, system, evidence):
+    if system == "hyperagents":
+        parent = evidence.get("parent_id")
+        files = evidence.get("archive_before", {}).get(parent, {}).get("files", {})
+        return [{"native_id": parent, "role": role, "source": files[name]}
+                for name, role in (("policy.py", "parent"), ("meta_agent.py", "meta_parent")) if name in files]
     if system == "gepa_program":
         source = base.version.component("policy")["source"]
         return [{"native_id": "source-" + digest(source), "role": "parent", "source": source}]
@@ -268,12 +278,15 @@ def _slot(output, root, index, adapter, package, provider, manifest, *, environm
         from openevolve.utils.code_utils import parse_full_rewrite
         source = parse_full_rewrite(evidence["model_receipt"]["content"]["response"], "python")
     if isinstance(source, str):
+        parent_source = base.version.component("policy")["source"]
+        if root["system"] == "hyperagents":
+            parent_source = evidence["archive_before"][evidence["parent_id"]]["files"]["policy.py"]
         generated.append({"source": source, "source_sha256": digest(source),
             "native_id": evidence.get("child_id", "source-" + digest(source)),
             "native_admitted": bool(evidence.get("native_admitted")),
             "platform_retained": bool(evidence.get("native_admitted") and receipt is not None and digest(source) in retained),
             "active_after": source == active.version.component("policy")["source"],
-            "source_changed_from_parent": source.strip() != base.version.component("policy")["source"].strip()})
+            "source_changed_from_parent": source.strip() != parent_source.strip()})
     value = {"step": index, "operation_id": operation, "status": status, "error": error,
         "failure_kind": failure_kind,
         "base_source": base.version.component("policy")["source"],

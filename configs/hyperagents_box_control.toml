@@ -1,0 +1,30 @@
+[experiment]
+protocol = "hyperagents-box-development-v1"
+systems = ["openevolve", "gepa_program", "hyperagents"]
+seed = 2066111701
+horizon = 3
+origin = "control"
+paid_calls = 0
+model_call_cap = 15
+token_cap = 0
+independent_seed_offset = 100000
+independent_replicas = 2
+
+[execution]
+max_training_episodes = 512
+max_episode_steps = 24
+root_training_steps = 600000
+root_evaluation_steps = 24000
+root_tool_calls = 0
+root_compute_ms = 180000
+job_timeout_seconds = 10
+training_state_inheritance = "none"
+
+[hyperagents]
+max_calls_per_edit = 3
+max_worker_wall_seconds = 450
+max_worker_cpu_seconds = 15
+max_worker_output_bytes = 1048576
+max_editable_file_bytes = 60000
+archive_parent_selection = "pinned_uniform_valid_archive"
+active_reporting = "highest_public_score_latest_tie"

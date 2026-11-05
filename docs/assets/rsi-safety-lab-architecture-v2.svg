@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2160" height="1540" viewBox="0 0 2160 1540">
+<title>RSI Safety Lab: one-shot admission, independent audit, and offline evidence</title>
+<desc>Adapted optimizers and development stress tasks feed a native update workflow. Current admission audits one root update and freezes deployment. Native rejection prevents activation but may still receive diagnostic audit. Platform-managed snapshot references produce an allowed audit view and paired native-continuation probes. Lab admission is distinct from detection. Only train/calibration evidence supports later frozen scorers; continuous external admission is future work.</desc>
+<defs>
+<filter id="shadow" x="-10%" y="-10%" width="125%" height="130%"><feDropShadow dx="4" dy="5" stdDeviation="1.5" flood-color="#41364E" flood-opacity="0.16"/></filter>
+<marker id="arrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L11 6 L1 11 Z" fill="#192129"/></marker>
+<marker id="trainArrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L11 6 L1 11 Z" fill="#5BA89F"/></marker>
+<marker id="dataArrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#5BA89F"/></marker>
+<marker id="futureArrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L11 6 L1 11" fill="none" stroke="#87919A" stroke-width="1.7"/></marker>
+<style>
+text{font-family:Arial,Helvetica,sans-serif;fill:#192129} .head{font-family:"Arial Rounded MT Bold",Arial,Helvetica,sans-serif;font-weight:700} .mono{font-family:Menlo,Consolas,monospace}
+</style>
+</defs>
+<rect x="0" y="0" width="2160" height="1540" rx="0" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+<text x="40" y="48" font-size="39" font-weight="700" text-anchor="start" class="head" style="fill:#192129">RSI Safety Lab</text>
+<text x="2120" y="47" font-size="22" font-weight="400" text-anchor="end" class="" style="fill:#56616D">Current admission workflow · native continuation · offline evidence</text>
+<rect x="35" y="86" width="355" height="985" rx="23" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="2.8" stroke-dasharray="12 8"/>
+<rect x="435" y="86" width="895" height="985" rx="23" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="2.8" stroke-dasharray="12 8"/>
+<rect x="1375" y="86" width="750" height="985" rx="23" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="2.8" stroke-dasharray="12 8"/>
+<text x="212" y="132" font-size="28" font-weight="700" text-anchor="middle" class="head" style="fill:#192129">Experiment Setup</text>
+<text x="882" y="132" font-size="30" font-weight="700" text-anchor="middle" class="head" style="fill:#192129">Native RSI Workflow</text>
+<text x="882" y="166" font-size="21" font-weight="600" text-anchor="middle" class="" style="fill:#192129">Current: one root audit, then frozen deployment</text>
+<text x="1750" y="132" font-size="30" font-weight="700" text-anchor="middle" class="head" style="fill:#192129">Audit &amp; Admission</text>
+<text x="1750" y="164" font-size="21" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">Independent audit → lab-controlled admission</text>
+<rect x="55" y="200" width="315" height="160" rx="14" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2.3"/>
+<g transform="translate(72 215) scale(1.2916666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v5M16 3v5M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></g>
+<text x="116" y="242" font-size="21" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Systems &amp; optimizers</text>
+<text x="212" y="275" font-size="19" font-weight="400" text-anchor="middle" class="" style="fill:#192129">GEPA · OpenEvolve (adapted)</text>
+<text x="212" y="303" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Custom RSI via a standard adapter</text>
+<rect x="81" y="319" width="263" height="32" rx="7" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="1.8"/>
+<text x="212.5" y="341" font-size="17" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Capabilities · state · task API</text>
+<rect x="55" y="390" width="315" height="335" rx="14" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2.3"/>
+<g transform="translate(73 406) scale(1.25)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M8 10l2 2 4-4M8 17h8"/></g>
+<text x="116" y="432" font-size="21" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Stress task suite (dev)</text>
+<text x="77" y="466" font-size="15" font-weight="700" text-anchor="start" class="" style="fill:#56616D">PAIRED NORMAL / STRESS TASKS</text>
+<rect x="76" y="484" width="136" height="32" rx="7" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="1.8"/>
+<text x="144.0" y="506" font-size="17" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Authorization</text>
+<rect x="224" y="484" width="126" height="32" rx="7" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="1.8"/>
+<text x="287.0" y="506" font-size="18" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Finance</text>
+<rect x="76" y="526" width="136" height="32" rx="7" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="1.8"/>
+<text x="144.0" y="548" font-size="18" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Retail</text>
+<rect x="224" y="526" width="126" height="32" rx="7" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="1.8"/>
+<text x="287.0" y="548" font-size="18" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Privacy</text>
+<text x="77" y="586" font-size="15" font-weight="700" text-anchor="start" class="" style="fill:#56616D">EXTENSION TASKS</text>
+<text x="77" y="617" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Tool feedback · project quota</text>
+<text x="77" y="645" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Dynamic constraints · RL</text>
+<path d="M76 668 H350" fill="none" stroke="#A7ADB4" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="212" y="700" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Policies · tools · effect oracles</text>
+<rect x="55" y="755" width="315" height="290" rx="14" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2.3"/>
+<g transform="translate(73 775) scale(1.25)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/><rect x="7" y="3" width="3" height="6" rx="1" fill="white"/><rect x="15" y="9" width="3" height="6" rx="1" fill="white"/><rect x="6" y="15" width="3" height="6" rx="1" fill="white"/></g>
+<text x="116" y="802" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Protocol &amp; host</text>
+<text x="78" y="843" font-size="20" font-weight="400" text-anchor="start" class="" style="fill:#192129">Splits · seeds · budgets</text>
+<text x="78" y="874" font-size="20" font-weight="400" text-anchor="start" class="" style="fill:#192129">Tool and adapter contracts</text>
+<path d="M77 897 H349" fill="none" stroke="#A7ADB4" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="78" y="930" font-size="20" font-weight="400" text-anchor="start" class="" style="fill:#192129">Snapshot &amp; fork service</text>
+<text x="78" y="966" font-size="20" font-weight="400" text-anchor="start" class="" style="fill:#192129">Bounded execution</text>
+<text x="78" y="1002" font-size="20" font-weight="400" text-anchor="start" class="" style="fill:#192129">Trusted logs · provenance</text>
+<rect x="480" y="240" width="310" height="110" rx="13" fill="#F3F8EE" stroke="#80AD64" stroke-width="2.8"/>
+<circle cx="496" cy="240" r="15" fill="#FFFFFF" stroke="#80AD64" stroke-width="2.5"/>
+<text x="496" y="246" font-size="18" font-weight="700" text-anchor="middle" class="" style="fill:#192129">1</text>
+<g transform="translate(497 265) scale(1.4166666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v7l-4 2v-9z"/></g>
+<text x="544" y="280" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Select parent</text>
+<text x="544" y="308" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Base + full inherited state</text>
+<rect x="930" y="240" width="340" height="110" rx="13" fill="#F3F8EE" stroke="#80AD64" stroke-width="2.8"/>
+<circle cx="946" cy="240" r="15" fill="#FFFFFF" stroke="#80AD64" stroke-width="2.5"/>
+<text x="946" y="246" font-size="18" font-weight="700" text-anchor="middle" class="" style="fill:#192129">2</text>
+<g transform="translate(947 265) scale(1.4166666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3H4v18h16V10M10 15l1-5 8-8 4 4-8 8zM11 10l4 4"/></g>
+<text x="994" y="280" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Propose update</text>
+<text x="994" y="308" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Native optimizer</text>
+<rect x="950" y="395" width="300" height="75" rx="13" fill="#F3F8EE" stroke="#80AD64" stroke-width="2.6"/>
+<g transform="translate(966 415) scale(1.25)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h9l5 5v15H5zM14 2v6h5M10 12l-3 3 3 3M14 12l3 3-3 3"/></g>
+<text x="1010" y="426" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Candidate update</text>
+<text x="1100" y="452" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Program + inherited state</text>
+<rect x="930" y="525" width="340" height="110" rx="13" fill="#F3F8EE" stroke="#80AD64" stroke-width="2.8"/>
+<circle cx="946" cy="525" r="15" fill="#FFFFFF" stroke="#80AD64" stroke-width="2.5"/>
+<text x="946" y="531" font-size="18" font-weight="700" text-anchor="middle" class="" style="fill:#192129">3</text>
+<g transform="translate(947 550) scale(1.4166666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 17v-4M12 17V8M17 17v-7M6 6h4"/></g>
+<text x="994" y="565" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Public evaluation</text>
+<text x="994" y="593" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Correctness + native score</text>
+<path d="M1100 675 L1225 735 L1100 795 L975 735 Z" fill="#F3F8EE" stroke="#80AD64" stroke-width="2.8"/>
+<text x="1100" y="731" font-size="23" font-weight="700" text-anchor="middle" class="head" style="fill:#192129">Native gate</text>
+<text x="1100" y="758" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">accept / reject</text>
+<rect x="500" y="690" width="280" height="95" rx="13" fill="#FFF7E7" stroke="#DEA340" stroke-width="2.5"/>
+<g transform="translate(518 714) scale(1.3333333333333333)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="12" rx="2"/><path d="M7 10V6a5 5 0 0 1 10 0v4M12 15v3"/></g>
+<text x="568" y="730" font-size="24" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Retain old</text>
+<text x="640" y="762" font-size="17" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Native reject blocks activation</text>
+<rect x="930" y="855" width="340" height="125" rx="13" fill="#FFF7E7" stroke="#DEA340" stroke-width="2.8"/>
+<circle cx="946" cy="855" r="15" fill="#FFFFFF" stroke="#DEA340" stroke-width="2.5"/>
+<text x="946" y="861" font-size="18" font-weight="700" text-anchor="middle" class="" style="fill:#192129">5</text>
+<g transform="translate(947 880) scale(1.4166666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 4v6c0 5-6 9-9 11-3-2-9-6-9-11V6zM7 12l3 3 7-7"/></g>
+<text x="994" y="895" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Apply decision</text>
+<text x="994" y="923" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Accept → commit candidate</text>
+<text x="1100.0" y="952" font-size="17" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Reject / inconclusive → retain old</text>
+<rect x="480" y="855" width="310" height="125" rx="13" fill="#F3F8EE" stroke="#80AD64" stroke-width="2.8"/>
+<circle cx="496" cy="855" r="15" fill="#FFFFFF" stroke="#80AD64" stroke-width="2.5"/>
+<text x="496" y="861" font-size="18" font-weight="700" text-anchor="middle" class="" style="fill:#192129">6</text>
+<g transform="translate(497 880) scale(1.4166666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 4 18 4 18 0V5M3 12c0 4 18 4 18 0M3 18c0 4 18 4 18 0"/></g>
+<text x="544" y="895" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Inherit full state</text>
+<text x="544" y="923" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#192129">Program · archive · memory</text>
+<text x="635.0" y="952" font-size="17" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Optimizer state included</text>
+<rect x="480" y="1004" width="790" height="48" rx="11" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2.1"/>
+<g transform="translate(496 1015) scale(1.0416666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="12" rx="2"/><path d="M7 10V6a5 5 0 0 1 10 0v4M12 15v3"/></g>
+<text x="540" y="1035" font-size="22" font-weight="600" text-anchor="start" class="" style="fill:#192129">Freeze chosen system for deployment comparison</text>
+<g transform="translate(523 433) scale(1.5)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16M5 12c8 0 13-2 13-8"/><circle cx="5" cy="3" r="2" fill="white"/><circle cx="5" cy="21" r="2" fill="white"/><circle cx="18" cy="3" r="2" fill="white"/></g>
+<text x="575" y="460" font-size="23" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Native continuation</text>
+<text x="523" y="503" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#56616D">Probe / label branches</text>
+<text x="523" y="535" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#56616D">continue native updates.</text>
+<text x="523" y="567" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#56616D">The deployment branch</text>
+<text x="523" y="599" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#56616D">stays frozen.</text>
+<path d="M370 280 H480" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="424" y="263" font-size="17" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">adapter</text>
+<path d="M790 295 H930" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M1100 350 V395" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M1100 470 V525" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M1100 635 V675" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M975 735 H780" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="874" y="716" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">native reject</text>
+<path d="M640 785 V855" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M930 917 H790" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M635 980 V1004" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M930 580 H885 V295 H930" fill="none" stroke="#80AD64" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="870" y="584" font-size="17" font-weight="400" text-anchor="start" class="" style="fill:#52783D" transform="rotate(-90 870 584)">Public feedback in native branches</text>
+<path d="M480 917 H454 V295 H480" fill="none" stroke="#87919A" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#futureArrow)" stroke-dasharray="11 7 2 7"/>
+<text x="447" y="822" font-size="16" font-weight="400" text-anchor="start" class="" style="fill:#56616D" transform="rotate(-90 447 822)">Future continuous audit (not implemented)</text>
+<path d="M370 650 H900 V580 H930" fill="none" stroke="#192129" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="673" y="640" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">Task API · policy · tools</text>
+<path d="M635 240 V205 H1420" fill="none" stroke="#5BA89F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#dataArrow)" stroke-dasharray="7 6"/>
+<path d="M1250 432 H1295 V205" fill="none" stroke="#5BA89F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<circle cx="1295" cy="205" r="4" fill="#5BA89F"/>
+<text x="1030" y="193" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#397D76">snapshot refs (read-only)</text>
+<rect x="1420" y="185" width="660" height="45" rx="10" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2"/>
+<text x="1750" y="214" font-size="21" font-weight="600" text-anchor="middle" class="" style="fill:#192129">Platform interface: allowed view + isolated forks</text>
+<path d="M1750 230 V265" fill="none" stroke="#5BA89F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#dataArrow)"/>
+<path d="M2080 208 H2104 V500 H2080" fill="none" stroke="#5BA89F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#dataArrow)" stroke-dasharray="7 6"/>
+<text x="2117" y="416" font-size="16" font-weight="400" text-anchor="start" class="" style="fill:#397D76" transform="rotate(-90 2117 416)">lab-managed forks</text>
+<rect x="1420" y="265" width="660" height="120" rx="14" fill="#F0F8F6" stroke="#5BA89F" stroke-width="2.6"/>
+<circle cx="1438" cy="265" r="17" fill="white" stroke="#5BA89F" stroke-width="2.5"/>
+<text x="1438" y="272" font-size="21" font-weight="700" text-anchor="middle" class="" style="fill:#192129">4</text>
+<g transform="translate(1440 283) scale(1.4583333333333333)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></g>
+<text x="1493" y="304" font-size="25" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Audit View</text>
+<text x="1493" y="335" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#192129">Allowed diff · state · native/public evidence</text>
+<text x="1750" y="366" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">No sealed labels; native rejects may receive diagnostic audit</text>
+<path d="M1225 735 H1350 V325 H1420" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="1290" y="716" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">gate status</text>
+<text x="1339" y="637" font-size="17" font-weight="400" text-anchor="start" class="" style="fill:#56616D" transform="rotate(-90 1339 637)">one-shot admission (current)</text>
+<path d="M1750 385 V420" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="1420" y="420" width="660" height="165" rx="14" fill="#FFFFFF" stroke="#5BA89F" stroke-width="2.6"/>
+<g transform="translate(1440 439) scale(1.4583333333333333)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16M5 12c8 0 13-2 13-8"/><circle cx="5" cy="3" r="2" fill="white"/><circle cx="5" cy="21" r="2" fill="white"/><circle cx="18" cy="3" r="2" fill="white"/></g>
+<text x="1493" y="460" font-size="25" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Budgeted paired probes</text>
+<rect x="1450" y="485" width="260" height="32" rx="7" fill="#F3F8EE" stroke="#80AD64" stroke-width="1.8"/>
+<text x="1580.0" y="507" font-size="21" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Base branch</text>
+<text x="1735" y="507" font-size="19" font-weight="600" text-anchor="middle" class="" style="fill:#192129">vs.</text>
+<rect x="1760" y="485" width="290" height="32" rx="7" fill="#F3F8EE" stroke="#80AD64" stroke-width="1.8"/>
+<text x="1905.0" y="507" font-size="21" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Candidate branch</text>
+<text x="1750" y="550" font-size="21" font-weight="400" text-anchor="middle" class="" style="fill:#192129">m paired native rounds · matched tasks · current m ≤ 2</text>
+<text x="1750" y="574" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">Via lab probe service; forked state and separate budgets</text>
+<path d="M1750 585 V615" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="1420" y="615" width="660" height="165" rx="14" fill="#F0F8F6" stroke="#5BA89F" stroke-width="2.6"/>
+<g transform="translate(1440 634) scale(1.4166666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M15 15l7 7M6 11l3-4 3 5 2-3"/></g>
+<text x="1493" y="656" font-size="25" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Risk assessment</text>
+<rect x="1440" y="674" width="280" height="65" rx="10" fill="#FFFFFF" stroke="#5BA89F" stroke-width="1.9"/>
+<text x="1580" y="715" font-size="23" font-weight="600" text-anchor="middle" class="" style="fill:#192129">Rules (static)</text>
+<rect x="1760" y="674" width="300" height="65" rx="10" fill="#FFFFFF" stroke="#5BA89F" stroke-width="1.9"/>
+<text x="1910" y="701" font-size="23" font-weight="600" text-anchor="middle" class="" style="fill:#192129">Frozen scorer</text>
+<text x="1910" y="726" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">optional · next run only</text>
+<text x="1750" y="765" font-size="21" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Risk · utility · coverage → detection report</text>
+<path d="M1750 780 V835" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="1770" y="814" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#56616D">report</text>
+<rect x="1420" y="835" width="660" height="145" rx="14" fill="#FFF7E7" stroke="#DEA340" stroke-width="2.8"/>
+<g transform="translate(1440 852) scale(1.4583333333333333)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 4v6c0 5-6 9-9 11-3-2-9-6-9-11V6zM7 12l3 3 7-7"/></g>
+<text x="1493" y="878" font-size="26" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Lab admission policy</text>
+<rect x="1445" y="901" width="142" height="32" rx="7" fill="#FFFFFF" stroke="#DEA340" stroke-width="1.8"/>
+<text x="1516.0" y="923" font-size="21" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Accept</text>
+<rect x="1600" y="901" width="142" height="32" rx="7" fill="#FFFFFF" stroke="#DEA340" stroke-width="1.8"/>
+<text x="1671.0" y="923" font-size="21" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Reject</text>
+<rect x="1755" y="901" width="300" height="32" rx="7" fill="#FFFFFF" stroke="#DEA340" stroke-width="1.8"/>
+<text x="1905.0" y="923" font-size="21" font-weight="500" text-anchor="middle" class="" style="fill:#192129">Inconclusive (abstain)</text>
+<text x="1750" y="962" font-size="19" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Candidate-bound; native reject always blocks activation</text>
+<path d="M1420 917 H1270" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="1345" y="900" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#192129">decision</text>
+<text x="1750" y="1025" font-size="20" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">Retaining the old system does not certify its safety.</text>
+<rect x="35" y="1135" width="2090" height="245" rx="20" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="2.7" stroke-dasharray="12 8"/>
+<text x="62" y="1174" font-size="27" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Independent Evidence &amp; Offline Learning</text>
+<text x="2090" y="1173" font-size="20" font-weight="400" text-anchor="end" class="" style="fill:#56616D">No sealed / final results return to search or online audit</text>
+<path d="M875 1052 V1110 H1015 V1188 H740 V1210" fill="none" stroke="#192129" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="905" y="1096" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#56616D">Frozen run artifacts: state + trusted logs</text>
+<rect x="65" y="1210" width="350" height="130" rx="13" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2.2"/>
+<g transform="translate(82 1227) scale(1.2916666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 17v-4M12 17V8M17 17v-7M6 6h4"/></g>
+<text x="127" y="1254" font-size="24" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Risk · Utility · Cost</text>
+<text x="240" y="1289" font-size="21" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Path safety · adaptation</text>
+<text x="240" y="1320" font-size="19" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Coverage · missing evidence</text>
+<rect x="480" y="1210" width="520" height="130" rx="13" fill="#FFFFFF" stroke="#A7ADB4" stroke-width="2.2"/>
+<g transform="translate(498 1227) scale(1.2916666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="12" rx="2"/><path d="M7 10V6a5 5 0 0 1 10 0v4M12 15v3"/></g>
+<text x="543" y="1254" font-size="25" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Independent evaluation</text>
+<text x="740" y="1289" font-size="21" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Label branches: native continuation</text>
+<text x="740" y="1320" font-size="20" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Deployment comparison: frozen system</text>
+<path d="M480 1275 H415" fill="none" stroke="#192129" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M1000 1275 H1140" fill="none" stroke="#5BA89F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#dataArrow)" stroke-dasharray="7 6"/>
+<text x="1070" y="1250" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#397D76">train / calib.</text>
+<text x="1070" y="1308" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#397D76">only</text>
+<rect x="1140" y="1210" width="450" height="130" rx="13" fill="#F0F8F6" stroke="#5BA89F" stroke-width="2.2" stroke-dasharray="8 5"/>
+<g transform="translate(1158 1227) scale(1.375)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="12" r="3"/><path d="M7 6l9 5M7 18l9-5M7 5h8M7 19h8"/></g>
+<text x="1206" y="1254" font-size="24" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Offline train &amp; calibrate</text>
+<text x="1365" y="1289" font-size="20" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Partitioned update / rollout evidence</text>
+<text x="1365" y="1320" font-size="19" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Trainable safety · efficacy under study</text>
+<path d="M1590 1275 H1640" fill="none" stroke="#5BA89F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#dataArrow)" stroke-dasharray="7 6"/>
+<rect x="1640" y="1210" width="440" height="130" rx="13" fill="#FFFFFF" stroke="#5BA89F" stroke-width="2.2"/>
+<g transform="translate(1660 1230) scale(1.2916666666666667)" fill="none" stroke="#192129" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="12" rx="2"/><path d="M7 10V6a5 5 0 0 1 10 0v4M12 15v3"/></g>
+<text x="1707" y="1254" font-size="25" font-weight="700" text-anchor="start" class="head" style="fill:#192129">Frozen model artifact</text>
+<text x="1860" y="1291" font-size="20" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Versioned and fixed before later runs</text>
+<text x="1860" y="1321" font-size="20" font-weight="400" text-anchor="middle" class="" style="fill:#192129">Load into the optional scorer only</text>
+<path d="M2080 1275 H2147 V706 H2060" fill="none" stroke="#5BA89F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#dataArrow)" stroke-dasharray="8 7"/>
+<text x="2135" y="1195" font-size="18" font-weight="400" text-anchor="start" class="" style="fill:#397D76" transform="rotate(-90 2135 1195)">load frozen artifact (next run only)</text>
+<rect x="65" y="1411" width="28" height="22" rx="4" fill="#F3F8EE" stroke="#80AD64" stroke-width="2"/>
+<text x="107" y="1430" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#192129">Native RSI stages</text>
+<rect x="410" y="1411" width="28" height="22" rx="4" fill="#FFF7E7" stroke="#DEA340" stroke-width="2"/>
+<text x="452" y="1430" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#192129">Lab-controlled admission</text>
+<rect x="880" y="1411" width="28" height="22" rx="4" fill="#F0F8F6" stroke="#5BA89F" stroke-width="2"/>
+<text x="922" y="1430" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#192129">Audit / offline learning</text>
+<rect x="1335" y="1411" width="28" height="22" rx="4" fill="#F7F8FA" stroke="#A7ADB4" stroke-width="2"/>
+<text x="1377" y="1430" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#192129">Setup, runtime &amp; evaluation</text>
+<path d="M1890 1422 H1940" fill="none" stroke="#87919A" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#futureArrow)" stroke-dasharray="10 5 2 5"/>
+<text x="1952" y="1430" font-size="21" font-weight="400" text-anchor="start" class="" style="fill:#56616D">Future</text>
+<text x="1080" y="1475" font-size="20" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">Current: one-shot admission per root update; probe horizon m ≤ 2; deployment frozen; learned scorer under study.</text>
+<text x="1080" y="1510" font-size="18" font-weight="400" text-anchor="middle" class="" style="fill:#56616D">Adapted optimizers are not full native reproductions. Logical separation, not an OS sandbox. Native rejects may still be audited diagnostically.</text>
+</svg>

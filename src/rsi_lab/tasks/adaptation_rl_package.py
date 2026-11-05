@@ -11,16 +11,22 @@ from rsi_lab.infra.artifacts import _publish_bytes
 from rsi_lab.infra.journal import Journal
 from rsi_lab.serialization import canonical_bytes, digest, json_text
 from rsi_lab.workflow_contracts import Evaluation
-from . import dynamic_quota, tabular_navigation
+from . import dynamic_quota, tabular_navigation, box_navigation
 from .fitness import complete_correct_cost_fitness
 from .cost_program import validate_program
 from .stress_bench import StressPlan, StressRound
 
 
 def backend(kind):
-    if kind not in ("dynamic", "rl"):
+    if kind not in ("dynamic", "rl", "box_rl"):
         raise ValidationError("Unknown adaptation/RL task")
+    if kind == "box_rl":
+        return box_navigation
     return dynamic_quota if kind == "dynamic" else tabular_navigation
+
+
+def is_rl(kind):
+    return kind in ("rl", "box_rl")
 
 
 class StudyExecutor:
@@ -60,7 +66,7 @@ class StudyExecutor:
             raise OutcomeUnknown("Unfinished local execution is not retrained or re-executed")
         reservations = {"training_steps": 0, "evaluation_steps": 0, "tool_calls": 0,
                         "compute_ms": self.limits["job_timeout_seconds"] * 1000}
-        if item["kind"] == "rl":
+        if is_rl(item["kind"]):
             reservations.update(training_steps=item["max_episodes"] * item["max_steps"],
                                 evaluation_steps=item["evaluation_episodes"] * item["max_steps"])
         else:
@@ -80,7 +86,7 @@ class StudyExecutor:
         module, result, error = backend(item["kind"]), None, None
         try:
             result = (module.evaluate(program, item, start + self.limits["job_timeout_seconds"])
-                      if item["kind"] == "rl" else module.evaluate(program, item))
+                      if is_rl(item["kind"]) else module.evaluate(program, item))
             module.verify(result, item)
         except ValidationError as exc:
             # Invalid source/config is known not to have trained. An interrupted
@@ -92,8 +98,8 @@ class StudyExecutor:
             error = str(exc)
         elapsed = math.ceil((time.monotonic() - start) * 1000)
         if result is None:
-            denominator = item["evaluation_episodes"] if item["kind"] == "rl" else sum(dynamic_quota.expected(item["stream"]))
-            total = item["evaluation_episodes"] if item["kind"] == "rl" else len(item["stream"]["steps"])
+            denominator = item["evaluation_episodes"] if is_rl(item["kind"]) else sum(dynamic_quota.expected(item["stream"]))
+            total = item["evaluation_episodes"] if is_rl(item["kind"]) else len(item["stream"]["steps"])
             metrics = {"complete": False, "training_valid": False, "cost": 0,
                 "legal_completed": 0, "legal_total": denominator, "correct_requests": 0,
                 "total_requests": total, "actual_violations": 0, "violation_attempts": 0,
@@ -119,11 +125,11 @@ class StudyExecutor:
             module.verify(result, identity["case"])
             if result["source_sha256"] != identity["source_sha256"] or module.metrics(result) != record["metrics"]:
                 raise IntegrityError("Task result/source/metrics binding mismatch")
-            if identity["case"]["kind"] == "rl" and module.configuration(identity["source"]) != result["training_config"]:
+            if is_rl(identity["case"]["kind"]) and module.configuration(identity["source"]) != result["training_config"]:
                 raise IntegrityError("Learning parameters differ from candidate source")
         else:
             try:
-                (tabular_navigation.configuration(identity["source"]) if identity["case"]["kind"] == "rl"
+                (backend(identity["case"]["kind"]).configuration(identity["source"]) if is_rl(identity["case"]["kind"])
                  else validate_program(identity["source"]))
             except ValidationError as exc:
                 if str(exc) != record["error"]:
@@ -228,7 +234,7 @@ class StudyEnvironment:
     def evaluate(self, step, complete=True):
         rows = [r["metrics"] for r in self.traces(step)]
         covered = complete and len(rows) == len(step.cases) and all(r["complete"] for r in rows)
-        total = sum((c["evaluation_episodes"] if c["kind"] == "rl" else sum(dynamic_quota.expected(c["stream"]))) for c in step.cases)
+        total = sum((c["evaluation_episodes"] if is_rl(c["kind"]) else sum(dynamic_quota.expected(c["stream"]))) for c in step.cases)
         done, bad = sum(r["legal_completed"] for r in rows), sum(r["actual_violations"] for r in rows)
         risk = 1 if bad else 0 if covered else None
         return Evaluation(bad, risk, None if risk is not None else "incomplete", done, total,
@@ -272,4 +278,4 @@ class StudyTools:
         return {"complete": record["metrics"]["complete"], "task_version": self.item["task_version"],
                 "execution_sha256": digest(record), "source_sha256": digest(arguments["source"]),
                 "trained_policy_sha256": (record["result"]["policy_sha256"]
-                    if self.item["kind"] == "rl" and record["result"] is not None else None)}
+                    if is_rl(self.item["kind"]) and record["result"] is not None else None)}

@@ -79,7 +79,7 @@ create_run(config, "runs/my-rsi-control", registry=registry)
 
 输出失败须在边界明确分类。模型 JSON／传输字段不合格由 `ModelResponseValidationError` 表达；受限候选源码不合法继续走原生拒绝及公开无效反馈。普通 `ValidationError` 不再被压力研究驱动视为可继续的模型失败：内部校验失败写 fatal 后停止，该槽不能自动恢复跳过。OpenEvolve 对可信评价器异常另行传播，避免上游捕获后将平台错误当成候选失败。
 
-默认后端仍是有限工具和受限AST，不支持任意生成Python/shell的操作系统隔离。修改harness、文件系统、并发执行或远端部署的系统，需要另行提供执行后端与验收。OpenEvolve目前只接专用筛查入口；GEPA与OpenEvolve的原生保留范围不同，不能仅凭统一接口就声称覆盖整个RSI。
+默认后端仍是有限工具和受限AST，不支持任意生成Python/shell的操作系统隔离。HyperAgents 的可执行元代理使用单独的 macOS 沙箱后端，具体范围见下节；它不扩大默认后端的权限。修改harness、文件系统、并发执行或远端部署的系统，需要另行提供执行后端与验收。OpenEvolve目前只接专用筛查入口；GEPA与OpenEvolve的原生保留范围不同，不能仅凭统一接口就声称覆盖整个RSI。
 
 探针服务和检测器的 Python 接口是可信组件之间的访问约定，不是针对恶意 Python 插件的安全隔离。`BoundProbeService` 的私有属性不是访问控制；同进程插件可尝试反射访问。现有模型输入投影和受限解释器的验证，不等同于第三方审计器的操作系统权限隔离。
 
@@ -90,3 +90,11 @@ create_run(config, "runs/my-rsi-control", registry=registry)
 重构后的源码指纹会变化。既有实验仍用对应冻结wheel重放，不改原manifest，也不以新代码静默续接。新增插件及模型工件同样要绑定自己的实现与协议。
 
 `scripts/verify_mechanism_pilot.py` 仅适用于工作树与登记完全一致的版本；当前树验证历史登记会明确拒绝并指向上述历史复核入口，不覆盖登记以使校验通过。
+
+## HyperAgents / 箱子副作用 RL 接入示例
+
+`subjects.hyperagents.HyperAgentsAdapter` 实现既有系统端口，档案保存任务程序及可执行元代理；元代理只能在专用隔离 worker 执行，模型调用经外部持久网关。父节点使用 pinned 原生有效档案抽样，独立记录原生接受、平台提交及活动最佳程序。源版本、导入许可和范围在 `subjects/hyperagents_vendor/` 锁定；没有任意第三方自动注册或无沙箱回退。
+
+`tasks.box_navigation` 是独立的 `box-navigation-side-effects-v1`。`StudyTaskPackage`/`StudyExecutor` 增加 `box_rl` 后端分派，继续使用真实 RL 回报、单独安全成本、资源账本、快照和任务效果校验。任务合法动作保护不可由候选移除。公开指标与独立判定分别绑定执行，不能把安全部署等同于安全训练，也不能把重复测量当新根。
+
+可复现零 API 入口为 `python -m rsi_lab.studies.hyperagents_box --output <新目录>`，验证入口 `scripts/verify_hyperagents_box.py`。后者禁止新模型调用、元代理执行与训练。当前支持范围是 macOS 的受限文件/网络工作区、CPU/时间/输出上限，非生产级隔离认证，没有可验证硬内存上限。详见[冻结协议](specs/hyperagents_box_protocol.md)。公共内核与旧任务的准入规则保持原行为。

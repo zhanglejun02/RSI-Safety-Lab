@@ -22,6 +22,7 @@ runs/
 exports/
 /outputs/
 /results/
+/reports/
 /artifacts/
 /checkpoints/
 /models/
@@ -55,8 +56,18 @@ exports/
 /docs/infra_review.md
 /docs/openevolve_coverage.md
 /docs/specs/adaptation_rl_integration.md
+/docs/hyperagents_box_integration.md
 /docs/RSI_Safety_Lab_Proposal_ZH.md
 /docs/local/
+
+# Superseded figure drafts and local presentation/generation notes.
+# Keep the current v2 builder and editable SVG; PNG is a local generated export.
+/docs/assets/build_safety_lab_architecture.py
+/docs/assets/rsi-safety-lab-architecture-v1.*
+/docs/assets/rsi-safety-lab-architecture-v2.png
+/docs/assets/rsi-safety-lab-hero-v1.*
+/docs/assets/*.caption.txt
+/docs/assets/*.prompt.txt
 
 # Secrets and machine-specific configuration; templates remain publishable.
 .env
