@@ -11,7 +11,7 @@ rsi-lab platform run --config configs/platform_gepa_control.toml --output runs/g
 python scripts/task_a_training_smoke.py --output runs/task-a-learning
 ```
 
-GEPA 控制配置使用真正的官方优化器和脚本模型响应，不是模型能力或论文结果。最新测试状态只记录在 [HANDOFF](HANDOFF.md)。
+GEPA 控制配置使用真正的官方优化器和脚本模型响应，不是模型能力或论文结果。运行状态与输出保存在本地目录。
 
 真实 API pilot 使用 `configs/platform_workflow_http.toml`。在运行环境配置服务对应的凭据环境变量（默认 `OPENROUTER_API_KEY`）；不要写入配置、源码或提交日志。actor 和 editor 可分别替换模型、服务端点、调用上限与 token 上限。密钥必须属于所配置的服务，不能因为兼容 Chat Completions 就跨服务混用。
 
@@ -44,7 +44,7 @@ rsi-lab platform run --config configs/platform_workflow_kimi.toml --env-file .en
 rsi-lab platform resume --run runs/kimi-admission --env-file .env
 ```
 
-加载器不执行命令、不做变量插值，拒绝不允许的变量、重复定义、多行值和宽权限文件；已存在的进程变量优先。密钥不进入模型请求正文、数据库或配置清单。若本机 Python 没有默认 CA 路径，应配置真实可信的 CA 文件（例如这台 macOS 的 `/etc/ssl/cert.pem`）为 `SSL_CERT_FILE`；保持 TLS 证书验证开启，不使用 `verify=False`。
+加载器不执行命令、不做变量插值，拒绝不允许的变量、重复定义、多行值和宽权限文件；已存在的进程变量优先。密钥不进入模型请求正文、数据库或配置清单。若本机 Python 没有默认 CA 路径，应配置真实可信的 CA 文件（例如 macOS 的 `/etc/ssl/cert.pem`）为 `SSL_CERT_FILE`；保持 TLS 证书验证开启，不使用 `verify=False`。
 
 全链路验收使用 `platform run`，包含准备、短探针、决定、受控激活或保留旧版本、独立续演和部署。`pilot-run` 专门比较四组，不执行准入部署。没有经过训练/校准的评分器时，变化候选得到 `inconclusive` 是保守规则允许的结果，不应为“跑通”而强制接受。
 
@@ -71,4 +71,4 @@ python scripts/gpu_preflight.py --require-cuda --output runs/gpu-preflight.json
 
 该脚本只检查环境，不下载模型、不启动服务、不训练。`git clone` 只下载代码，CUDA、驱动和模型服务仍需独立准备。托管模型需要兼容当前 JSON Chat Completions 网关；其工具遵循和输出格式仍需真实试跑，本仓库没有预先验证特定 4B 模型的可用性。
 
-所有实验目前只操作模拟授权世界。接入会执行任意生成代码的外部系统前，还需要进程/容器隔离后端的单独验收。
+任务执行作用于本地模拟世界。接入会执行任意生成代码的外部系统前，还需要进程/容器隔离后端的单独验收。

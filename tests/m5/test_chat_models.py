@@ -10,7 +10,8 @@ from threading import Thread
 import pytest
 
 from rsi_lab.contracts import CandidateOrigin
-from rsi_lab.errors import BudgetExceeded, ConflictError, IntegrityError, OutcomeUnknown, ValidationError
+from rsi_lab.errors import (BudgetExceeded, ConflictError, IntegrityError,
+                            ModelResponseValidationError, OutcomeUnknown, ValidationError)
 from rsi_lab.infra.chat_models import ChatConfig, ChatMessage, DurableChatProvider, ScriptedChatProvider
 from rsi_lab.serialization import canonical_bytes, decode_json
 
@@ -183,14 +184,30 @@ def test_provider_usage_overrun_is_recorded_and_stops_further_dispatch(tmp_path)
 def test_invalid_or_truncated_response_is_terminal_and_not_resent(tmp_path, raw):
     calls = []
     provider = DurableChatProvider(tmp_path / "provider.sqlite", config(), transport=lambda *args: calls.append(1) or raw)
-    with pytest.raises(ValidationError):
+    with pytest.raises(ModelResponseValidationError):
         provider.generate("r1", MESSAGES)
-    with pytest.raises(ValidationError):
+    with pytest.raises(ModelResponseValidationError):
         provider.generate("r1", MESSAGES)
     assert calls == [1]
     assert provider.summary()["invalid_responses"] == 1
     if b'"usage"' in raw:
         assert provider.summary()["actual_total_tokens"] == 30
+
+
+def test_host_result_invariant_is_not_relabelled_as_invalid_model_output(tmp_path, monkeypatch):
+    from rsi_lab.infra.chat_models import ChatResult
+    calls = []
+    provider = DurableChatProvider(tmp_path / "provider.sqlite", config(), transport=lambda *args: calls.append(1) or response())
+    def broken(_):
+        raise ValidationError("host result invariant")
+    monkeypatch.setattr(ChatResult, "validate", broken)
+    with pytest.raises(ValidationError, match="host result invariant") as caught:
+        provider.generate("r1", MESSAGES)
+    assert not isinstance(caught.value, ModelResponseValidationError)
+    assert provider.summary()["invalid_responses"] == 0
+    with pytest.raises(OutcomeUnknown):
+        provider.generate("r1", MESSAGES)
+    assert calls == [1]
 
 
 def test_response_model_alias_cannot_silently_change_between_calls(tmp_path):

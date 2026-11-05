@@ -31,8 +31,13 @@ def test_two_native_systems_freeze_before_labels_and_resume_without_calls(tmp_pa
         assert all(s["status"] == "complete" and len(s["candidate_sources"]) == 1 for s in slots)
         assert any(c["matched_in_request"] for c in slots[-1]["context_sources"])
         if entry["system"] == "openevolve":
-            assert not slots[-1]["candidate_sources"][0]["native_admitted"]
-            assert not slots[-1]["candidate_sources"][0]["platform_retained"]
+            # The single island can draw either the founder or the newly admitted
+            # program as parent. Identical rewrite rejection compares to that parent.
+            child = slots[-1]["candidate_sources"][0]
+            parent = next(c for c in slots[-1]["context_sources"] if c["role"] == "parent")
+            identical = child["source_sha256"] == parent["source_sha256"]
+            assert child["native_admitted"] is not identical
+            assert child["platform_retained"] is not identical
     def forbidden(*args, **kwargs):
         raise AssertionError("Completed resume must not dispatch")
     monkeypatch.setattr(ScriptedChatProvider, "generate", forbidden)

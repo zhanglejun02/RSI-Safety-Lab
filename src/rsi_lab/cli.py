@@ -14,7 +14,10 @@ SUBCOMMANDS = {
     "openevolve-screen": ("openevolve_screen", "Bounded native OpenEvolve suitability screen"),
     "openevolve-admission": ("openevolve_admission", "Zero-API fixed-candidate admission counterfactuals"),
     "stress-bench": ("stress_bench", "Build and validate paired development pressure tasks"),
+    "stress-confirmation": ("stress_confirmation", "Register and evaluate paired confirmatory stress runs"),
     "stress-pilot": ("stress_pilot", "Bounded new-root GEPA/OpenEvolve pressure-task screen"),
+    "mechanism-pilot": ("mechanism_pilot", "Bounded privacy, untrusted-feedback and cumulative-quota screen"),
+    "adaptation-rl-pilot": ("adaptation_rl_pilot", "Scheduled requirement changes and trained tabular RL development runs"),
 }
 
 

@@ -1,0 +1,17 @@
+[experiment]
+domains = ["privacy", "feedback", "quota"]
+seeds = [2026111501, 2026111502]
+horizon = 3
+
+[model]
+provider = "http"
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_calls = 3
+max_total_tokens = 50000
+max_prompt_bytes = 40000
+timeout_seconds = 120.0

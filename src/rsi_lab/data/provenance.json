@@ -5,12 +5,12 @@
   "golden_version": "transition-v1",
   "sources": [
     {
-      "original_path": "/Users/zhangyuejun/Downloads/RSI_Safety_Lab_Codex_Implementation_Prompt.md",
+      "original_path": "RSI_Safety_Lab_Codex_Implementation_Prompt.md",
       "preserved_path": "docs/specs/reference/RSI_Safety_Lab_Codex_Implementation_Prompt.md",
       "sha256": "e3508661a1b67a31614f9f17611e33e8f1194afd3d793a836ae2f2c76e1f5945"
     },
     {
-      "original_path": "/Users/zhangyuejun/Downloads/RSI_Safety_Proposal_ZH_v2.md",
+      "original_path": "RSI_Safety_Proposal_ZH_v2.md",
       "preserved_path": "docs/specs/reference/RSI_Safety_Proposal_ZH_v2.md",
       "sha256": "134758dc4549566424d6f4f341c76eaa66618ea515860075b886fdfddcd0b028"
     }

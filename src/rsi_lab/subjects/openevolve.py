@@ -17,17 +17,19 @@ from rsi_lab.api import (ActivationCommand, Capabilities, CandidateDraft, Compon
                          PlannedPublicEvaluator, SystemDescriptor, SystemSnapshot,
                          SystemVersion, replace_component)
 from rsi_lab.engine.continuation import read_record, save_record
-from rsi_lab.errors import IntegrityError, OutcomeUnknown, UnsupportedCapability, ValidationError
+from rsi_lab.errors import (IntegrityError, ModelResponseValidationError, OutcomeUnknown,
+                            UnsupportedCapability, ValidationError)
 from rsi_lab.infra.chat_models import ChatMessage, DurableChatProvider
 from rsi_lab.serialization import canonical_bytes, decode_json, digest, json_text
 from rsi_lab.tasks.cost_program import validate_program
-from .public_validation import cost_candidate_valid as public_valid
+from .public_validation import task_candidate_valid as public_valid, task_fitness, evaluation_binding
 from .local import LocalSystemAdapter
 
 REVISION = "73448d715968b3578d8458b16295e827edd2b6bf"
 SYSTEM_ID = "openevolve-bounded"
 ADMISSION_PROTOCOL = "openevolve-admission-v2"
-ADMISSION_CONDITIONS = ("public_complete_correct", "upstream")
+ADMISSION_CONDITIONS = ("public_complete_correct", "upstream", "bound_public_evaluation")
+TASK_ADMISSION_PROTOCOL = "openevolve-admission-v3"
 _LOCK = RLock()
 _FIELDS = ("island_feature_maps", "islands", "archive", "best_program_id",
            "island_best_programs", "last_iteration", "current_island",
@@ -45,13 +47,15 @@ def verify_upstream():
     return lock
 
 
-def initial_snapshot(seed, source, tool_protocol, contract, *, admission_condition=None):
+def initial_snapshot(seed, source, tool_protocol, contract, *, admission_condition=None, evaluation=None):
     validate_program(source)
     task_contract = {"tool_protocol": tool_protocol, "text": contract}
     if admission_condition is not None:
         if admission_condition not in ADMISSION_CONDITIONS:
             raise ValidationError("Unknown OpenEvolve admission condition")
-        task_contract["admission"] = {"protocol": ADMISSION_PROTOCOL, "condition": admission_condition}
+        task_contract["admission"] = {"protocol": TASK_ADMISSION_PROTOCOL if evaluation else ADMISSION_PROTOCOL, "condition": admission_condition}
+    if evaluation is not None:
+        task_contract["evaluation"] = evaluation
     return SystemSnapshot(SystemVersion(SYSTEM_ID, (
         Component("policy", json_text({"source": source}), "agent"),
         Component("task_contract", json_text(task_contract)),
@@ -63,8 +67,12 @@ def admission_binding(snapshot):
     """Absent binding identifies historical artifacts, whose native_valid included the gate."""
     binding = snapshot.version.component("task_contract").get("admission")
     if binding is not None and (type(binding) is not dict or set(binding) != {"protocol", "condition"}
-            or binding["protocol"] != ADMISSION_PROTOCOL or binding["condition"] not in ADMISSION_CONDITIONS):
+            or binding["protocol"] not in (ADMISSION_PROTOCOL, TASK_ADMISSION_PROTOCOL) or binding["condition"] not in ADMISSION_CONDITIONS):
         raise ValidationError("Invalid OpenEvolve admission binding")
+    current = evaluation_binding(snapshot)
+    if binding and ((binding["protocol"] == TASK_ADMISSION_PROTOCOL) != (current is not None)
+                    or (binding["condition"] == "bound_public_evaluation") != (current is not None)):
+        raise ValidationError("Versioned admission requires its declared task evaluation")
     return binding
 
 
@@ -74,6 +82,8 @@ def admission_decision(prepared):
     binding = admission_binding(prepared.base)
     if admission_binding(prepared.draft.candidate) != binding:
         raise IntegrityError("An update changed its admission condition")
+    if evaluation_binding(prepared.base) != evaluation_binding(prepared.draft.candidate):
+        raise IntegrityError("An update changed its task evaluation binding")
     evidence = decode_json(prepared.draft.native_evidence_json)
     if binding is None:
         accepted = prepared.draft.native_valid
@@ -83,10 +93,10 @@ def admission_decision(prepared):
                 or evidence.get("native_admitted") is not prepared.draft.native_valid):
             raise IntegrityError("Proposal evidence differs from the bound admission protocol")
         accepted = bool(prepared.draft.native_valid and (binding["condition"] == "upstream"
-                        or public_valid(evidence.get("public_candidate") or {})))
+                        or public_valid(evidence.get("public_candidate") or {}, evaluation_binding(prepared.base))))
         if evidence.get("platform_accepted") is not accepted:
             raise IntegrityError("Proposal platform admission evidence is inconsistent")
-        policy, reason = ADMISSION_PROTOCOL, binding["condition"]
+        policy, reason = binding["protocol"], binding["condition"]
     return AdmissionDecision(prepared.identity, digest(evidence), policy,
                              "accept" if accepted else "reject", reason)
 
@@ -129,9 +139,8 @@ def _restore(db, population):
         validate_program(p.code)
 
 
-def _fitness(public):
-    # A bounded positive efficiency score; correctness is an explicit extra gate.
-    return {"combined_score": 1 / (1 + public["synthetic_units"]) if public_valid(public) else 0.0}
+def _fitness(public, binding=None):
+    return {"combined_score": task_fitness(public, binding)}
 
 
 def _artifact(public):
@@ -162,7 +171,7 @@ class _ModelBridge:
             self.receipt = self.provider.generate(self.operation + "/model", (
                 ChatMessage("system", wrapped), *tuple(ChatMessage(m["role"], m["content"]) for m in messages)))
             if set(self.receipt.content) != {"response"} or type(self.receipt.content["response"]) is not str:
-                raise ValidationError("OpenEvolve transport requires a response string")
+                raise ModelResponseValidationError("OpenEvolve transport requires a response string")
             self.last_model = self.receipt.response_model
             self.last_usage = {"total_tokens": self.receipt.total_tokens}
             return self.receipt.content["response"]
@@ -175,14 +184,21 @@ class _EvaluatorBridge:
     def __init__(self, base, evaluator, operation):
         self.base, self.evaluator, self.operation = base, evaluator, operation
         self.public, self.artifacts = None, {}
+        self.error = None
 
     async def evaluate_program(self, source, child_id):
         validate_program(source)
-        candidate = replace(self.base, version=replace_component(self.base.version, "policy", {"source": source}))
-        # Use source identity, not upstream's random uuid, for durable replay.
-        self.public = self.evaluator.evaluate(candidate, self.operation + "/child/" + digest(source)[:20])
-        self.artifacts = _artifact(self.public)
-        return _fitness(self.public)
+        try:
+            candidate = replace(self.base, version=replace_component(self.base.version, "policy", {"source": source}))
+            # Use source identity, not upstream's random uuid, for durable replay.
+            self.public = self.evaluator.evaluate(candidate, self.operation + "/child/" + digest(source)[:20])
+            self.artifacts = _artifact(self.public)
+            return _fitness(self.public, evaluation_binding(self.base))
+        except Exception as exc:
+            # Native workers may absorb exceptions. Only bounded-source rejection
+            # above is a candidate failure; trusted evaluation errors must escape.
+            self.error = exc
+            raise
 
     def get_pending_artifacts(self, child_id):
         return self.artifacts
@@ -233,6 +249,8 @@ class OpenEvolveAdapter(LocalSystemAdapter):
         if type(command) is not ActivationCommand:
             raise ValidationError("Expected controller activation command")
         binding = admission_binding(command.candidate)
+        if evaluation_binding(command.candidate) and command.candidate.version.component("task_contract") != self.snapshot().version.component("task_contract"):
+            raise IntegrityError("Candidate changed the trusted task evaluation contract")
         if binding:
             if binding != admission_binding(self.snapshot()):
                 raise IntegrityError("Activation changed the bound admission condition")
@@ -248,7 +266,7 @@ class OpenEvolveAdapter(LocalSystemAdapter):
                         and evidence.get("admission_binding") == binding
                         and evidence.get("platform_accepted") is True
                         and (binding["condition"] == "upstream"
-                             or public_valid(evidence.get("public_candidate") or {}))))
+                             or public_valid(evidence.get("public_candidate") or {}, evaluation_binding(command.candidate)))))
             if not matches or not all(matches):
                 raise ValidationError("V2 activation requires a persisted platform-admitted proposal")
         return super().activate(command)
@@ -291,7 +309,7 @@ class OpenEvolveAdapter(LocalSystemAdapter):
                 seed_public = evaluator.evaluate(base, operation_id + "/seed")
                 seed = Program(id="seed-" + digest(base.version.component("policy"))[0:20],
                                code=base.version.component("policy")["source"],
-                               metrics=_fitness(seed_public), timestamp=0.0)
+                               metrics=_fitness(seed_public, evaluation_binding(base)), timestamp=0.0)
                 db.add(seed, iteration=0, target_island=0)
             # All archive scores refer to this same public suite; no stale task scores.
             artifacts = {}
@@ -299,7 +317,7 @@ class OpenEvolveAdapter(LocalSystemAdapter):
             for key, program in sorted(db.programs.items()):
                 snapshot = replace(base, version=replace_component(base.version, "policy", {"source": program.code}))
                 public = evaluator.evaluate(snapshot, operation_id + "/archive/" + key)
-                program.metrics = _fitness(public)
+                program.metrics = _fitness(public, evaluation_binding(base))
                 artifacts[key], public_by_id[key] = _artifact(public), public
             db.best_program_id = None
             incumbent_program = db.get_best_program()
@@ -328,6 +346,8 @@ class OpenEvolveAdapter(LocalSystemAdapter):
                                            [p.id for p in inspirations], "full_rewrite")
             if model.error:
                 raise model.error
+            if bridge.error:
+                raise bridge.error
             evidence = {"optimizer": "openevolve_native_worker_single_island", "upstream_revision": REVISION,
                 "native_entrypoint": "openevolve.process_parallel._run_iteration", "parent_id": parent.id,
                 "inspiration_ids": [p.id for p in inspirations], "population_before": _export(db),
@@ -343,10 +363,10 @@ class OpenEvolveAdapter(LocalSystemAdapter):
             candidate, admitted, platform_accepted = base, False, False
             native_attempted, admitted_id = False, None
             evidence.update(admission_binding=binding, public_evaluation=bridge.public,
-                public_valid=bool(bridge.public and public_valid(bridge.public)),
+                public_valid=bool(bridge.public and public_valid(bridge.public, evaluation_binding(base))),
                 active_program_id_before=active_before, admission_rng=random.getstate())
             if binding:
-                evidence.update(acceptance_semantics=ADMISSION_PROTOCOL,
+                evidence.update(acceptance_semantics=binding["protocol"],
                     extra_gate=condition, admission_condition=condition)
             if result.child_program_dict:
                 child = Program.from_dict(result.child_program_dict)
@@ -369,7 +389,7 @@ class OpenEvolveAdapter(LocalSystemAdapter):
                 admitted_id = db.add(child, iteration=iteration, target_island=0)
                 admitted = admitted_id is not None and child.id in db.programs
                 platform_accepted = bool(admitted and bridge.public and
-                    (condition == "upstream" or public_valid(bridge.public)))
+                    (condition == "upstream" or public_valid(bridge.public, evaluation_binding(base))))
                 if admitted:
                     best = db.get_best_program()
                     artifacts[child.id] = bridge.artifacts
@@ -395,6 +415,9 @@ class OpenEvolveAdapter(LocalSystemAdapter):
                 archive_only_update=bool(platform_accepted and candidate != base
                                          and candidate.version == base.version),
                 proposed_population_sha256=digest(decode_json(candidate.state_json)["population"]))
+            if evaluation_binding(base):
+                evidence["evaluation_binding"] = evaluation_binding(base)
+                evidence["rescored_archive"] = public_by_id
             draft = CandidateDraft(base.sha256, candidate, admitted if binding else platform_accepted,
                                    json_text(evidence), self.provider.origin)
         save_record(path, draft)

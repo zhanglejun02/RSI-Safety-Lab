@@ -9,6 +9,10 @@ class ValidationError(LabError, ValueError):
     """An input violates its declared schema."""
 
 
+class ModelResponseValidationError(ValidationError):
+    """A confirmed model response violates the declared output contract."""
+
+
 class IntegrityError(LabError):
     """Stored bytes or references no longer match their manifest."""
 

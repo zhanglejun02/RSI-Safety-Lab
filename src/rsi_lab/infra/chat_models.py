@@ -20,7 +20,8 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from rsi_lab.contracts import CandidateOrigin, StrictRecord, require_count, require_id
-from rsi_lab.errors import BudgetExceeded, ConflictError, IntegrityError, OutcomeUnknown, ValidationError
+from rsi_lab.errors import (BudgetExceeded, ConflictError, IntegrityError,
+                            ModelResponseValidationError, OutcomeUnknown, ValidationError)
 from rsi_lab.infra.artifacts import _checked_path
 from rsi_lab.serialization import canonical_bytes, decode_json, digest
 
@@ -72,6 +73,15 @@ class ChatConfig(StrictRecord):
             require_count(getattr(self, field), field, 1)
             if getattr(self, field) > 2**31 - 1:
                 raise ValidationError(f"{field} is too large")
+
+    def request_headers(self):
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if self.api_key_env is not None:
+            key = os.environ.get(self.api_key_env)
+            if not key or "\n" in key or "\r" in key:
+                raise ValidationError("Configured API credential is missing or invalid")
+            headers["Authorization"] = "Bearer " + key
+        return headers
 
     @property
     def endpoint(self):
@@ -208,13 +218,7 @@ class DurableChatProvider:
         return body
 
     def _credentials(self):
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        if self.config.api_key_env is not None:
-            key = os.environ.get(self.config.api_key_env)
-            if not key or "\n" in key or "\r" in key:
-                raise ValidationError("Configured API credential is missing or invalid")
-            headers["Authorization"] = "Bearer " + key
-        return headers
+        return self.config.request_headers()
 
     def _reserve(self, request_id, body):
         request_hash = hashlib.sha256(body).hexdigest()
@@ -243,7 +247,7 @@ class DurableChatProvider:
         if row["response_bytes"] is None or hashlib.sha256(row["response_bytes"]).hexdigest() != row["response_sha"]:
             raise IntegrityError("Persisted model response digest mismatch")
         if row["status"] == "invalid":
-            raise ValidationError("Persisted model response was invalid; use a new explicit attempt")
+            raise ModelResponseValidationError("Persisted model response was invalid; use a new explicit attempt")
         result = ChatResult.from_dict(decode_json(row["result_json"]))
         if (result.request_id != row["request_id"] or result.request_sha256 != row["request_sha"]
                 or result.response_sha256 != row["response_sha"] or result.provider_id != self.provider_id
@@ -266,20 +270,26 @@ class DurableChatProvider:
         return values
 
     def _parse(self, request_id, request_hash, raw, overrun=False):
-        envelope = decode_json(raw)
+        def response_object(value):
+            try:
+                return decode_json(value)
+            except ValidationError as exc:
+                raise ModelResponseValidationError("Model response requires valid JSON object data") from exc
+
+        envelope = response_object(raw)
         choices = envelope.get("choices")
         if not isinstance(choices, list) or len(choices) != 1 or type(choices[0]) is not dict:
-            raise ValidationError("Model response must contain exactly one choice")
+            raise ModelResponseValidationError("Model response must contain exactly one choice")
         choice = choices[0]
         if choice.get("finish_reason") != "stop" or not isinstance(choice.get("message"), dict):
-            raise ValidationError("Model response is incomplete or has an unsupported finish reason")
+            raise ModelResponseValidationError("Model response is incomplete or has an unsupported finish reason")
         message = choice["message"]
         if message.get("tool_calls") or message.get("refusal"):
-            raise ValidationError("Expected JSON content, received tool calls or refusal")
-        content = decode_json(message.get("content"))
+            raise ModelResponseValidationError("Expected JSON content, received tool calls or refusal")
+        content = response_object(message.get("content"))
         response_model = envelope.get("model")
         if type(response_model) is not str or not response_model:
-            raise ValidationError("Response must identify its actual model")
+            raise ModelResponseValidationError("Response must identify its actual model")
         # Aliases can resolve to pinned underlying model names; both are retained.
         prompt, completion, total = self._usage(envelope)
         metadata = {}
@@ -287,7 +297,7 @@ class DurableChatProvider:
                                ("system_fingerprint", "system_fingerprint")):
             value = envelope.get(source)
             if value is not None and (type(value) is not str or len(value) > 512):
-                raise ValidationError("Invalid model response provenance")
+                raise ModelResponseValidationError("Invalid model response provenance")
             metadata[target] = value
         usage = envelope.get("usage")
         return ChatResult(request_id, content, self.origin, self.provider_id, self.config.model,
@@ -328,7 +338,7 @@ class DurableChatProvider:
                 actual_tokens > reservation or completion_tokens > self.config.max_output_tokens)
             try:
                 result = self._parse(request_id, request_hash, raw, overrun)
-            except ValidationError:
+            except ModelResponseValidationError:
                 result = None
             if result is not None:
                 previous = db.execute("SELECT result_json FROM chat_requests WHERE status='complete' LIMIT 1").fetchone()
@@ -340,7 +350,7 @@ class DurableChatProvider:
                         hashlib.sha256(raw).hexdigest(), canonical_bytes(result) if result else None,
                         None if result else "invalid_response", int(overrun), request_id))
         if result is None:
-            raise ValidationError("Model response is not a complete JSON object; attempt recorded")
+            raise ModelResponseValidationError("Model response is not a complete JSON object; attempt recorded")
         return result
 
     @staticmethod

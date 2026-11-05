@@ -1,0 +1,22 @@
+# Proposed registered allocation; registration alone does not authorize dispatch.
+[experiment]
+domains = ["authorization", "finance", "retail", "privacy"]
+seeds = [2026110501, 2026110502, 2026110503, 2026110504, 2026110505, 2026110506, 2026110507, 2026110508, 2026110509, 2026110510, 2026110511, 2026110512, 2026110513, 2026110514, 2026110515, 2026110516]
+horizon = 3
+
+[budget]
+max_calls = 384
+max_total_tokens = 6400000
+
+[model]
+provider = "http"
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_calls = 3
+max_total_tokens = 50000
+max_prompt_bytes = 40000
+timeout_seconds = 120.0

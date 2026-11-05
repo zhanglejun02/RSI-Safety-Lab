@@ -157,6 +157,10 @@ def _root(output, entry, manifest, frozen):
             raise IntegrityError("Slot changed after generation freeze")
         if slot["status"] not in ("complete", "missing"):
             raise IntegrityError("Invalid generation slot status")
+        if "warning_sha256" in slot:
+            warning = read_record(_path(directory, relative).parent / "warning.json")
+            if digest(warning) != slot["warning_sha256"]:
+                raise IntegrityError("Warning differs from frozen slot")
         slots.append(slot)
     founder = root["founder_source"]
     if digest(founder) != root["founder_source_sha256"] or slots[0]["base_source"] != founder:
@@ -180,7 +184,12 @@ def _root(output, entry, manifest, frozen):
             if candidate["active_after"] and candidate["source_sha256"] != digest(slot["active_source"]):
                 raise IntegrityError("Candidate active-program witness mismatch")
             sources[candidate["source_sha256"]] = candidate["source"]
-    cases = bench.make_cases(entry["domain"], entry["seed"] + 900000000, "development")
+    protected = "holdout_parameters" in manifest
+    if protected:
+        parameter = manifest["holdout_parameters"][f'{entry["domain"]}/{entry["seed"]}']
+        cases = bench.make_cases(entry["domain"], parameter, "holdout")
+    else:
+        cases = bench.make_cases(entry["domain"], entry["seed"] + 900000000, "development")
     location = output / "analysis" / "roots" / digest(entry["root_id"])[:24]
     save_record(location / "cases.json", {"cases": cases, "selection": "all_levels_and_both_arms_after_generation_freeze"})
     evaluated = {key: _evaluate(source, entry["domain"], cases, location / "sources" / key)
@@ -232,10 +241,12 @@ def _root(output, entry, manifest, frozen):
                "evaluation": evaluated[digest(s["active_source"])]["all"]} for s in slots]
     final = evaluated[digest(slots[-1]["active_source"])]
     initial = evaluated[digest(founder)]
-    final_risk = _risk([final["all"]["risk"]], bool(missing_steps))
-    path_risk = _risk([r["evaluation"]["risk"] for r in active], bool(missing_steps))
+    # A missing model reply can coexist with a fully observed retained active program.
+    outcome_missing = bool(missing_steps) and not protected
+    final_risk = _risk([final["all"]["risk"]], outcome_missing)
+    path_risk = _risk([r["evaluation"]["risk"] for r in active], outcome_missing)
     candidate_unknown = bool(missing_steps) or any(c["risk"] is None for c in candidates)
-    comparison_valid = (not missing_steps and final["all"]["complete"] and initial["all"]["complete"]
+    comparison_valid = (not outcome_missing and final["all"]["complete"] and initial["all"]["complete"]
         and final["all"]["correctness"] == initial["all"]["correctness"] == 1)
     initial_cost, final_cost = initial["all"]["cost"], final["all"]["cost"]
     value = {**entry, "registered_steps": horizon, "complete_steps": horizon - len(missing_steps),
@@ -259,6 +270,9 @@ def _root(output, entry, manifest, frozen):
         "offline_source_reuse": "exact_source_within_root;no_model_response_reuse",
         "public_active": [s["public_active"] for s in slots],
         "interpretation": "development_root;lineage_cooccurrence_not_causal_transmission"}
+    if protected:
+        value["independent_split"] = "holdout"
+        value["interpretation"] = "registered_parameter_pair;lineage_cooccurrence_not_causal_transmission"
     save_record(location / "summary.json", value)
     return value
 
@@ -292,7 +306,8 @@ def _group(roots, system, domain=None):
                    "observed_lineage_recurrence", "path_risk", "final_risk"):
         result[metric] = _rates([r[metric] for r in selected])
     if domain is not None:
-        complete = bool(selected) and all(r["generation_complete"] and r["final"]["complete"] for r in selected)
+        complete = bool(selected) and all(r["final"]["complete"] and
+            (r["generation_complete"] or r.get("independent_split") == "holdout") for r in selected)
         final = {key: sum(r["final"][key] for r in selected) for key in COUNT_KEYS}
         result["final_totals_within_domain"] = final
         result["final_legal_completion"] = final["legal_completed"] / final["legal_total"] if complete and final["legal_total"] else None
@@ -328,7 +343,18 @@ def analyze(output):
     expected = {(d, s, m) for d in manifest["domains"] for s in manifest["seeds"] for m in manifest["systems"]}
     if {(e["domain"], e["seed"], e["system"]) for e in entries} != expected or len(entries) != len(expected):
         raise IntegrityError("Experiment grid has missing or duplicate roots")
-    identity = {"analysis_protocol": VERSION, "manifest_sha256": digest(manifest),
+    protected = "holdout_parameters" in manifest
+    if protected:
+        expected_keys = {f'{e["domain"]}/{e["seed"]}' for e in entries}
+        if set(manifest["holdout_parameters"]) != expected_keys:
+            raise IntegrityError("Holdout parameters do not cover this grid")
+        for entry in entries:
+            if digest(read_record(_path(output, entry["path"]) / "root.json")) != frozen["roots_sha256"][entry["root_id"]]:
+                raise IntegrityError("Registered root changed before holdout access")
+        save_record(output / "analysis" / "holdout-access.json", {
+            "holdout_parameters_sha256": digest(manifest["holdout_parameters"]),
+            "generation_freeze_sha256": digest(frozen), "root_count": len(entries)})
+    identity = {"analysis_protocol": "stress-confirmation-protected-analysis-v1" if protected else VERSION, "manifest_sha256": digest(manifest),
         "generation_freeze_sha256": digest(frozen),
         "analysis_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     save_record(output / "analysis" / "identity.json", identity)
@@ -349,6 +375,11 @@ def analyze(output):
         "ranking": None, "ranking_reason": "small_development_grid;no_confirmatory_ordering",
         "causal_transmission_claim": False, "formal_holdout": False,
         "comparison": "GEPA_bounded_program_segmented_active_only_vs_OpenEvolve_single_island_archive;common_public_correctness_gate"}
+    if protected:
+        value["formal_holdout"] = manifest["confirmatory"]
+        value["ranking_reason"] = "see_preregistered_paired_scorecard"
+        if manifest["provider_kind"] == "http":
+            value["comparison_model_identity_valid"] = response_models == [manifest["config"]["model"]["model"]]
     save_record(output / "analysis" / "summary.json", value)
     lines = ["# 两种RSI的压力任务开发试跑", "",
         "来源：" + ("HTTP模型服务；已确认响应与缺失分别记录。" if value["origin"] == "natural" else "scripted工程控制，不能作为自然RSI结果。"),
@@ -375,5 +406,11 @@ def analyze(output):
     lines += ["", "不同领域合成成本不相加为货币；API账单缺失不填0。每个root的model_usage保留未知响应与token缺失。public_active是活跃程序的公开分数，不能代替全部重评分开销；完整开销只在public_execution_accounting有记录时报告。",
         "原始源码进入父/参考编辑上下文后，同族违规尝试在新候选重现，属于观察到的谱系关联；后代实际违规另列。未做撤去祖先的干预，不能证明因果传播。",
         "本轮样本来自构造压力分布与少量独立起点，不能按case数扩大统计样本，不能外推为部署风险频率。目前不给出确认性系统总排名。", ""]
+    if protected:
+        lines[0] = "# 预登记压力协议的独立效果"
+        lines[-2] = "配对主结果、缺失界限与抽样区间见单独的预登记评分表。工程控制仅验证接线。"
     (output / "analysis" / "report.md").write_text("\n".join(lines))
+    if protected:
+        from .stress_finance_warning import summarize_warnings
+        summarize_warnings(output, value)
     return value

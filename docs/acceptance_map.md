@@ -1,6 +1,6 @@
 # P0 验收映射
 
-本表对应保留的[实现规格](specs/reference/RSI_Safety_Lab_Codex_Implementation_Prompt.md)第 21 节。它定位代码和可执行断言，不以测试数量代替实验语义。实际执行命令、结果、安装包和 CLI 证据由本阶段交接记录保存；M1–M3 的历史记录保持原样。所有执行对象仍是登记的 Fake/control fixture。
+本表对应保留的[实现规格](specs/reference/RSI_Safety_Lab_Codex_Implementation_Prompt.md)第 21 节。它定位代码和可执行断言，不以测试数量代替实验语义。运行命令、结果、安装包和 CLI 证据由各次本地运行单独保存。所有执行对象仍是登记的 Fake/control fixture。
 
 表中测试路径均相对项目根目录。一个测试可以同时验证多条不变量；参数化测试没有人为拆开凑数。
 
@@ -70,4 +70,4 @@
 | AdmissionView 本体、binding、候选来源及嵌套 ArtifactRef 拒绝额外 sealed 字段 | `tests/m4/test_views.py::test_admission_view_rejects_nested_sealed_fields` |
 | 从相同持久生成响应分叉，封存库/表/CAS 标签分别改为 0 与 1，同时在实际读取端口禁止访问；准入、实际风险、暂停和费用完全相同 | `tests/m4/test_views.py::test_sealed_data_cannot_change_admission_or_pause` |
 
-OS 硬隔离和真实模型不属于已验证能力。没有将只检查接口属性的测试标成隔离验收，也没有把 API/GPU 条件缺失记成核心测试通过。研究层的独立候选续演尚未实现，错误拒绝率必须为 null，训练导出不虚构监督标签。
+本表中的冻结 P0 测试不构成 OS 硬隔离或真实模型表现的证据。仅检查接口属性的测试不能充当隔离验收；缺少评价证据的指标保持 null，训练导出不得虚构监督标签。

@@ -2,7 +2,7 @@
 
 本接入实现 `SystemAdapter`，复用 `PublicTaskEvaluator`、`prepare_update`、`ActivationController` 和 `continue_system`。专用入口是 `rsi-lab openevolve-screen`，当前未注册成通用 `platform` 配置选项。研究对象是受限执行程序及其可继承程序档案；不是q/v的自然更新实验。
 
-受测对象包含平台选择的公开目标、额外入库门槛和档案重评分。**它不是仅加日志的完整原生OpenEvolve。** 原筛查的行为、约束、独立观察及未覆盖风险逐项列在 [覆盖表](openevolve_coverage.md)。旧协议的`native_valid`字段已包含平台门槛，不能直接解释成未修改的上游接受结果；新[入库反事实协议](specs/openevolve_admission_protocol.md)局部分离公开评价、原生入库和平台准入，旧工件解释不变。
+受测对象包含平台选择的公开目标、额外入库门槛和档案重评分。**它不是仅加日志的完整原生OpenEvolve。** 适配时须分别记录原生行为、平台约束、独立观察和未覆盖风险。旧协议的`native_valid`字段已包含平台门槛，不能直接解释成未修改的上游接受结果；新[入库反事实协议](specs/openevolve_admission_protocol.md)局部分离公开评价、原生入库和平台准入，旧工件解释不变。
 
 ## 安装与运行
 
@@ -44,12 +44,4 @@ python scripts/verify_openevolve_screen.py runs/oe-natural
 
 详细事前条件见[筛查协议](specs/openevolve_screen_protocol.md)。新增根仍是开发探索，不能转称封存集。没有复验收益或增险、或固定边界已解决观察问题时，按协议停下，不自动扩样或训练。
 
-全零实际风险仍是有效测评结果。它不支持有害检出率或风险降低结论，但已有决定仍可用于描述未观察到违规子集上的拒绝、弃权、根收益与成本。固定边界及静态决定本轮没有门控真实后代；其离线条件采用不能写成持续防御效果。主`log_and_allow`仍保留原工具对非pending状态等请求的拒绝，这与平台外部`enforce`分开登记。
-
-## 2026-11-03 工件与复核
-
-自然运行位于 `runs/openevolve-kimi-20261103`：38次已派发请求，37个完整响应、1个中断后未知响应；4/5条根复验公开改善，冻结与H2续演均未观察到实际违规。完整结果和适用边界统一维护在 [HANDOFF](HANDOFF.md)。`runs/` 不随 Git 分发。
-
-本轮保留了两份绑定原manifest的恢复修正记录，未重写原登记、未重发未知请求。实验结束后另修正工作量分类：续演中公开验证的成本应属public，而非independent。原报告与summary保持原样，`accounting-correction.json`保存新旧分类及不变总量；风险、收益和模型用量不变。
-
-旧工件须用原冻结版本复核，不能用更新后的源码覆盖结果。该轮实际执行与离线重放版本在 `runs/openevolve-repro-v4-20261103`；完成费用分类修复后的源码和wheel在 `runs/openevolve-repro-v5-20261103`，供新运行使用。可把v4 wheel以 `pip install --no-deps --target <隔离目录> <wheel路径>` 安装，再设置 `PYTHONPATH=<隔离目录>`，运行v4归档的 `source/scripts/verify_openevolve_screen.py`。此过程不生成模型响应，不需要API密钥。
+全零实际风险仍是有效测评结果。它不支持有害检出率或风险降低结论，但可描述相应子集上的拒绝、弃权、根收益与成本。离线条件采用不能写成持续防御效果。主`log_and_allow`仍保留原工具对非pending状态等请求的拒绝，这与平台外部`enforce`分开登记。

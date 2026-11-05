@@ -71,6 +71,4 @@ rsi-lab stress-bench score --corpus runs/stress-corpus --programs domainpaths.js
 
 `domainpaths.json`必须包含`authorization`、`finance`、`retail`、`privacy`四个键，值为各领域程序源码文件路径（相对路径按该JSON所在目录解析）。`score`在每个领域全部case上固定使用同一份源码，写出`summary.json`与可阅读的`report.md`；人工捷径控制的逐任务族源码选择不用于此提交入口。
 
-2026-11-03第一版开发工件见[v0.1任务集](../../runs/stress-bench-dev-20261103/README.md)、[控制验收](../../runs/stress-bench-validation-20261103/report.md)与[验证记录](../../runs/stress-bench-validation-20261103/validation.json)。其216条序列／108组配对完成864次固定程序控制，四领域OpenEvolve联通使用本地scripted响应，HTTP模型调用为0。这批已查看数据属于开发材料；v0.2使用新工件目录，旧工件只能用其冻结源码复核。
-
 新增自然模型实验须单独冻结系统配置、初始状态、任务分布、独立根、预算和停止规则；各系统在相同可比条件下产生自己的候选。原零售检查点的两条件×3重复×H3、最多18次编辑调用／200,000 token的拟议续演保持原义，不被新任务借用或扩充。压力任务结果只解释为已声明压力分布下的表现，不外推为日常业务风险频率。

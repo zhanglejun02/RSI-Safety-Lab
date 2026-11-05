@@ -16,7 +16,8 @@ from rsi_lab.contracts import CursorFamily, Partition
 from rsi_lab.engine.activation import ActivationController
 from rsi_lab.engine.continuation import read_record, save_record
 from rsi_lab.engine.platform import PublicTaskEvaluator, prepare_update
-from rsi_lab.errors import ConflictError, IntegrityError, LabError, ValidationError
+from rsi_lab.errors import (BudgetExceeded, ConflictError, IntegrityError, LabError,
+                            ModelResponseValidationError, OutcomeUnknown, ValidationError)
 from rsi_lab.frozen import implementation_fingerprint
 from rsi_lab.infra.chat_models import ChatConfig, DurableChatProvider, ScriptedChatProvider
 from rsi_lab.infra.environment import load_environment
@@ -92,13 +93,14 @@ def _adapter(system, location, provider, snapshot):
     return GepaProgramAdapter(location, provider, snapshot)
 
 
-def _initial(system, seed, module, package):
+def _initial(system, seed, module, package, contract=None):
+    contract = module.CONTRACT if contract is None else contract
     if system == "openevolve":
         from rsi_lab.subjects.openevolve import initial_snapshot
         return initial_snapshot(seed, module.FOUNDER_SOURCE, package.tool_protocol,
-                                module.CONTRACT, admission_condition="public_complete_correct")
+                                contract, admission_condition="public_complete_correct")
     from rsi_lab.subjects.gepa_program import initial_snapshot
-    return initial_snapshot(seed, module.FOUNDER_SOURCE, package.tool_protocol, module.CONTRACT)
+    return initial_snapshot(seed, module.FOUNDER_SOURCE, package.tool_protocol, contract)
 
 
 def _provider(path, kind, settings, system, module):
@@ -153,12 +155,15 @@ def _context(base, system, evidence):
             for key, role in ids if key in programs]
 
 
-def _slot(output, root, index, adapter, package, provider, manifest):
+def _slot(output, root, index, adapter, package, provider, manifest, *, environment_identity=None):
     root_dir = output / root["path"]
     location = root_dir / f"step-{index:04}"
+    if (location / "fatal.json").exists():
+        raise IntegrityError("This slot has a recorded internal failure; automatic resume is prohibited")
     if (location / "slot.json").exists():
         return read_record(location / "slot.json")
     operation = root["root_id"] + f"/edit-{index}"
+    environment_hash = digest({} if environment_identity is None else environment_identity)
     evaluator = PublicTaskEvaluator(adapter, package, location / "public", seed=root["seed"])
     baseline_path = location / "request-baseline.json"
     if not baseline_path.exists():
@@ -172,6 +177,7 @@ def _slot(output, root, index, adapter, package, provider, manifest):
         base = adapter.snapshot()
     save_record(location / "base.json", base)
     evidence, error, status, receipt, public_active = {}, None, "complete", None, None
+    failure_kind = None
     try:
         if prepared_path.exists():
             evaluator.verify_cached()
@@ -179,7 +185,7 @@ def _slot(output, root, index, adapter, package, provider, manifest):
             draft = adapter.propose(operation, evaluator)
             prepared = prepare_update(adapter, draft, base, update_id=operation,
                 root_id=root["root_id"], protocol_sha256=digest(manifest),
-                environment_sha256=digest({}), partition=Partition.DEV,
+                environment_sha256=environment_hash, partition=Partition.DEV,
                 horizon=manifest["horizon"], task_plan_sha256=digest(evaluator.plan))
             save_record(prepared_path, prepared)
         evidence = decode_json(prepared.draft.native_evidence_json)
@@ -187,19 +193,34 @@ def _slot(output, root, index, adapter, package, provider, manifest):
             from rsi_lab.subjects.openevolve import admission_decision
             decision = admission_decision(prepared)
         else:
-            decision = AdmissionDecision(prepared.identity, digest(evidence), PROTOCOL,
+            decision = AdmissionDecision(prepared.identity, digest(evidence), manifest["protocol"],
                 "accept" if prepared.draft.native_valid and evidence["platform_accepted"] else "reject",
-                "registered_public_complete_correct")
+                evidence["extra_gate"] if "evaluation" in base.version.component("task_contract")
+                else "registered_public_complete_correct")
+        if manifest.get("contract_version") and root["domain"] == "finance":
+            from .stress_finance_warning import record_warning
+            try:
+                record_warning(location, root, prepared, decision, evidence)
+            except Exception as exc:
+                raise IntegrityError("Unable to persist the registered pre-activation warning") from exc
         receipt = ActivationController(location / "activation.sqlite", digest(manifest)).apply(
-            adapter, prepared, decision, environment_sha256=digest({}))
+            adapter, prepared, decision, environment_sha256=environment_hash)
         save_record(location / "activation.json", {"decision": decision, "receipt": receipt})
         public_active = evaluator.evaluate(adapter.snapshot(), operation + "/active-measurement")
     except (IntegrityError, ConflictError):
         raise
     except Exception as exc:
-        # A pre-registered failed slot is not silently replaced with a new call.
+        # Operational failures consume their registered slot. A programming or
+        # storage bug stops the run, rather than masquerading as a model outage.
+        if not isinstance(exc, (BudgetExceeded, OutcomeUnknown, ModelResponseValidationError)):
+            save_record(location / "fatal.json", {"error": type(exc).__name__, "operation_id": operation,
+                "failure_kind": "unexpected_internal_error", "automatic_retry": False})
+            raise
+        failure_kind = ("budget_exhausted" if isinstance(exc, BudgetExceeded) else
+                        "outcome_unknown" if isinstance(exc, OutcomeUnknown) else "model_response_validation_failure")
         status, error = "missing", type(exc).__name__
-        save_record(location / "missing.json", {"error": error, "operation_id": operation})
+        save_record(location / "missing.json", {"error": error, "operation_id": operation,
+                    "failure_kind": failure_kind, "automatic_retry": False})
     active = adapter.snapshot()
     if not evidence and root["system"] == "openevolve":
         plan_path = adapter.directory / "proposals" / (digest(operation) + ".plan.json")
@@ -254,6 +275,7 @@ def _slot(output, root, index, adapter, package, provider, manifest):
             "active_after": source == active.version.component("policy")["source"],
             "source_changed_from_parent": source.strip() != base.version.component("policy")["source"].strip()})
     value = {"step": index, "operation_id": operation, "status": status, "error": error,
+        "failure_kind": failure_kind,
         "base_source": base.version.component("policy")["source"],
         "active_source": active.version.component("policy")["source"],
         "public_active": public_active, "candidate_sources": generated,
@@ -263,6 +285,8 @@ def _slot(output, root, index, adapter, package, provider, manifest):
         "public_evaluation_cost": evaluator.synthetic_cost(),
         "native_error": evidence.get("native_error"),
         "prepared_sha256": digest(prepared) if prepared_path.exists() else None}
+    if manifest.get("contract_version") and (location / "warning.json").exists():
+        value["warning_sha256"] = digest(read_record(location / "warning.json"))
     save_record(location / "active.json", active)
     save_record(location / "slot.json", value)
     return value
@@ -270,12 +294,28 @@ def _slot(output, root, index, adapter, package, provider, manifest):
 
 def run(config_path, output, *, env_file=None, resume=False, analyze=True):
     config, kind, settings = read_config(config_path)
+    return _run_registered(_manifest(config, kind, settings), settings, output, env_file=env_file,
+                           resume=resume, analyze=analyze)
+
+
+def _check_confirmation_budget(output, root, index, provider):
+    usage = provider.summary()
+    if usage["budget_overrun"]:
+        save_record(output / "budget-stop.json", {"root_id": root["root_id"], "step_when_observed": index,
+                    "root_usage": usage, "reason": "provider_exceeded_reservation"})
+        raise IntegrityError("Registered budget stopped; further dispatch is prohibited")
+
+
+def _run_registered(manifest, settings, output, *, env_file=None, resume=False, analyze=True):
     output = Path(output).resolve()
-    manifest = _manifest(config, kind, settings)
+    kind = manifest["provider_kind"]
+    bounded_dispatch = bool(manifest.get("confirmatory") or manifest.get("bounded_dispatch"))
     if output.exists() and not resume:
         raise ConflictError("Use a new output directory or explicit resume")
     if resume and not (output / "manifest.json").exists():
         raise ConflictError("No registered run to resume")
+    if bounded_dispatch and (output / "budget-stop.json").exists():
+        raise IntegrityError("Registered budget stopped; further dispatch is prohibited")
     # Check both exact upstream releases and local settings before any dispatch.
     from rsi_lab.subjects.gepa import require_gepa
     from rsi_lab.subjects.openevolve import verify_upstream
@@ -284,17 +324,29 @@ def run(config_path, output, *, env_file=None, resume=False, analyze=True):
     save_record(output / "manifest.json", manifest)
     if env_file:
         load_environment(env_file, {"MOONSHOT_API_KEY", "SSL_CERT_FILE"})
+    if bounded_dispatch and kind == "http":
+        settings.request_headers()  # local preflight before any root journal or slot exists
     root_records, response_models = {}, set()
     for root in manifest["root_ids"]:
         directory = output / root["path"]
         module = bench.backend(root["domain"])
         package = OrdinaryPublicTasks(root["domain"])
         provider = _provider(directory / "model.sqlite", kind, settings, root["system"], module)
-        initial = _initial(root["system"], root["seed"], module, package)
+        contract = None
+        if "contract_version" in manifest:
+            from rsi_lab.tasks.bounded_language import editor_contract
+            contract = editor_contract(root["domain"])
+            if digest(contract) != manifest["contracts_sha256"][root["domain"]]:
+                raise IntegrityError("Editor contract differs from registration")
+        initial = _initial(root["system"], root["seed"], module, package, contract)
         adapter = _adapter(root["system"], directory / "system", provider, initial)
         slot_paths, hashes, slot_rows = [], {}, []
         for index in range(1, manifest["horizon"] + 1):
+            if bounded_dispatch:
+                _check_confirmation_budget(output, root, index, provider)
             row = _slot(output, root, index, adapter, package, provider, manifest)
+            if bounded_dispatch:
+                _check_confirmation_budget(output, root, index, provider)
             relative = f"step-{index:04}/slot.json"
             slot_paths.append(relative)
             hashes[relative] = digest(row)

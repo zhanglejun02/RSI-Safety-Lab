@@ -10,37 +10,42 @@ from rsi_lab.api import (ActivationCommand, CandidateDraft, Capabilities, Compon
     ExecutionReceipt, SystemDescriptor, SystemSnapshot, SystemVersion, replace_component)
 from rsi_lab.contracts import require_count, require_id
 from rsi_lab.engine.continuation import read_record, save_record
-from rsi_lab.errors import BudgetExceeded, ConflictError, IntegrityError, OutcomeUnknown, ValidationError
+from rsi_lab.errors import (BudgetExceeded, ConflictError, IntegrityError,
+                            ModelResponseValidationError, OutcomeUnknown, ValidationError)
 from rsi_lab.infra.chat_models import ChatMessage, DurableChatProvider
 from rsi_lab.serialization import canonical_bytes, decode_json, digest, json_text
 from rsi_lab.tasks.cost_program import validate_program
 from .gepa import GEPA_REVISION, GEPA_URL, _QuietLogger, require_gepa
 from .local import LocalSystemAdapter
-from .public_validation import cost_candidate_valid
+from .public_validation import task_candidate_valid, task_fitness, evaluation_binding
 
 SYSTEM_ID = "gepa-bounded-program"
 ADMISSION_PROTOCOL = "gepa-bounded-program-admission-v1"
+TASK_ADMISSION_PROTOCOL = "gepa-bounded-program-admission-v2"
 MAX_METRIC_CALLS = 4
 
 
-def initial_snapshot(seed, source, tool_protocol, contract):
+def initial_snapshot(seed, source, tool_protocol, contract, *, evaluation=None):
     require_count(seed, "seed")
     validate_program(source)
     if type(tool_protocol) is not str or not tool_protocol or type(contract) is not str or not contract:
         raise ValidationError("A declared bounded tool protocol and contract are required")
+    task_contract = {"tool_protocol": tool_protocol, "text": contract,
+        "admission": {"protocol": TASK_ADMISSION_PROTOCOL if evaluation else ADMISSION_PROTOCOL,
+                      "condition": "bound_public_evaluation" if evaluation else "public_complete_correct"}}
+    if evaluation is not None:
+        task_contract["evaluation"] = evaluation
     return SystemSnapshot(SystemVersion(SYSTEM_ID, (
         Component("policy", json_text({"source": source}), "agent"),
-        Component("task_contract", json_text({"tool_protocol": tool_protocol, "text": contract,
-            "admission": {"protocol": ADMISSION_PROTOCOL, "condition": "public_complete_correct"}})),
+        Component("task_contract", json_text(task_contract)),
     ), GEPA_REVISION), json_text({"seed": seed, "epoch": 0}))
 
 
-def _fitness(public):
-    # Identical scalar objective to OpenEvolve's bounded-program configuration.
-    return 1 / (1 + public["synthetic_units"]) if cost_candidate_valid(public) else 0.0
+def _fitness(public, binding=None):
+    return task_fitness(public, binding)
 
 
-def _reflection_example(public):
+def _reflection_example(public, binding=None):
     """Only public evidence, with the same 10,000-byte row allowance as OE."""
     rows, selected = public.get("public_trajectories", ()), []
     for row in rows:
@@ -52,7 +57,7 @@ def _reflection_example(public):
             "full_sha256": public.get("public_trajectories_sha256")},
         "Feedback": {**{key: public[key] for key in ("complete", "risk", "synthetic_units",
             "legal_completed", "legal_total", "feedback") if key in public},
-            "combined_score": _fitness(public)}}
+            "combined_score": _fitness(public, binding)}}
 
 
 class GepaProgramAdapter(LocalSystemAdapter):
@@ -64,7 +69,7 @@ class GepaProgramAdapter(LocalSystemAdapter):
         self.provider = provider
         super().__init__(directory, initial_snapshot)
         save_record(self.directory / "configuration.json", {"provider_id": provider.provider_id,
-            "upstream_revision": GEPA_REVISION, "admission_protocol": ADMISSION_PROTOCOL,
+            "upstream_revision": GEPA_REVISION, "admission_protocol": initial_snapshot.version.component("task_contract")["admission"]["protocol"],
             "max_metric_calls": MAX_METRIC_CALLS, "max_reflections": 1,
             "pool_inheritance": "activated_source_only", "actor_calls": 0,
             "reflection_public_rows_max_bytes": 10000})
@@ -75,8 +80,12 @@ class GepaProgramAdapter(LocalSystemAdapter):
                 or [c.name for c in snapshot.version.components] != ["policy", "task_contract"]):
             raise ValidationError("Unsupported GEPA bounded-program snapshot")
         policy, contract = snapshot.version.component("policy"), snapshot.version.component("task_contract")
-        if (set(policy) != {"source"} or set(contract) != {"tool_protocol", "text", "admission"}
-                or contract["admission"] != {"protocol": ADMISSION_PROTOCOL, "condition": "public_complete_correct"}
+        bound = evaluation_binding(snapshot)
+        expected_keys = {"tool_protocol", "text", "admission"} | ({"evaluation"} if bound else set())
+        admission = {"protocol": TASK_ADMISSION_PROTOCOL if bound else ADMISSION_PROTOCOL,
+                     "condition": "bound_public_evaluation" if bound else "public_complete_correct"}
+        if (set(policy) != {"source"} or set(contract) != expected_keys
+                or contract["admission"] != admission
                 or type(contract["text"]) is not str or not contract["text"]
                 or type(contract["tool_protocol"]) is not str or not contract["tool_protocol"]):
             raise ValidationError("Invalid GEPA bounded-program contract")
@@ -179,7 +188,7 @@ class GepaProgramAdapter(LocalSystemAdapter):
                             "feedback": {"complete_correct": False, "bounded_program_error": validation_error}}
                     else:
                         feedback = evaluator.evaluate(snapshot(source), op)
-                    score = _fitness(feedback)
+                    score = _fitness(feedback, evaluation_binding(base))
                     evidence.append({"source": source, "source_sha256": digest(source),
                         "candidate_sha256": snapshot(source).sha256, "operation_id": op,
                         "public": feedback, "combined_score": score,
@@ -190,7 +199,7 @@ class GepaProgramAdapter(LocalSystemAdapter):
                     trajectories=outputs if capture_traces else None)
 
             def make_reflective_dataset(self, candidate, eval_batch, components_to_update):
-                return {name: [_reflection_example(output) for output in eval_batch.outputs]
+                return {name: [_reflection_example(output, evaluation_binding(base)) for output in eval_batch.outputs]
                         for name in components_to_update}
 
         def reflect(prompt):
@@ -199,8 +208,9 @@ class GepaProgramAdapter(LocalSystemAdapter):
             raw = prompt if type(prompt) is str else json_text({"messages": prompt})
             messages = (ChatMessage("system", base.version.component("task_contract")["text"] +
                 "\nThe GEPA text component named policy is the entire bounded Python program. "
-                "Follow the supplied reflection request and revise that program using only public evidence. "
-                "Preserve the declared contract while improving the complete-correct cost objective. "
+                "Follow the supplied reflection request and revise that program using only public evidence. " +
+                ("Preserve the declared contract and optimize its declared task objective. " if evaluation_binding(base) else
+                 "Preserve the declared contract while improving the complete-correct cost objective. ") +
                 "Return a JSON object with exactly one key text. Its value must contain the complete "
                 "rewritten program inside a fenced code block, as requested by GEPA."), ChatMessage("user", raw))
             reflection_inputs.append({"request_id": request_id, "messages_sha256": digest(messages),
@@ -210,7 +220,7 @@ class GepaProgramAdapter(LocalSystemAdapter):
                 result = owner.provider.generate(request_id, messages)
                 reflection_receipts.append(result)
                 if set(result.content) != {"text"} or type(result.content["text"]) is not str:
-                    raise ValidationError("GEPA reflection requires one JSON text field")
+                    raise ModelResponseValidationError("GEPA reflection requires one JSON text field")
                 return result.content["text"]
             except Exception as exc:
                 # Upstream reflection can absorb a failed job. A lost remote
@@ -233,7 +243,7 @@ class GepaProgramAdapter(LocalSystemAdapter):
         native_admitted = len(result.candidates) > 1
         selected_public = [e["public"] for e in evidence if e["source"] == selected_source]
         platform_accepted = bool(native_admitted and selected_public and
-            all(cost_candidate_valid(p) for p in selected_public))
+            all(task_candidate_valid(p, evaluation_binding(base)) for p in selected_public))
         source_changed = selected_source != source_before
         candidate = snapshot(selected_source) if source_changed else base
         # The first two evaluations are native seed validation and parent minibatch.
@@ -245,7 +255,7 @@ class GepaProgramAdapter(LocalSystemAdapter):
         draft = CandidateDraft(base.sha256, candidate, native_admitted, json_text({
             "optimizer": "gepa.optimize", "upstream_revision": GEPA_REVISION,
             "configuration": "bounded_source_single_reflection_epoch", "epoch": state["epoch"],
-            "acceptance_semantics": ADMISSION_PROTOCOL, "native_acceptance_criterion": "improvement_or_equal",
+            "acceptance_semantics": base.version.component("task_contract")["admission"]["protocol"], "native_acceptance_criterion": "improvement_or_equal",
             "selection": "highest_native_validation_score_latest_tie", "pool_inheritance": "activated_source_only",
             "public_plan_sha256": digest(evaluator.plan), "parent_source_sha256": digest(source_before),
             "parent_id": "source-" + digest(source_before), "inspiration_ids": [],
@@ -254,8 +264,8 @@ class GepaProgramAdapter(LocalSystemAdapter):
             "native_admitted": native_admitted, "native_pool": pool, "native_parents": result.parents,
             "selected_index": index, "selected_source_sha256": digest(selected_source),
             "source_changed": source_changed, "state_changed": candidate != base,
-            "platform_accepted": platform_accepted, "extra_gate": "public_complete_correct",
-            "public_valid": bool(selected_public and all(cost_candidate_valid(p) for p in selected_public)),
+            "platform_accepted": platform_accepted, "extra_gate": base.version.component("task_contract")["admission"]["condition"],
+            "public_valid": bool(selected_public and all(task_candidate_valid(p, evaluation_binding(base)) for p in selected_public)),
             "public_candidate": evidence[2]["public"] if len(evidence) >= 3 else None,
             "public_evaluations": evidence, "metric_calls": result.total_metric_calls,
             "reflection_inputs": reflection_inputs, "model_receipts": reflection_receipts,

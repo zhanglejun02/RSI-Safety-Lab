@@ -1,0 +1,47 @@
+[experiment]
+protocol = "adaptation-rl-development-v1"
+seed = 2026111601
+scripted_seed = 2066111601
+systems = ["openevolve", "gepa_program"]
+dynamic_conditions = ["static", "change"]
+dynamic_horizon = 4
+rl_horizon = 3
+phase_one_slots = 2
+notification_before_slot = 3
+effective_from_slot = 3
+edits_before_first_new_rule_deployment = 1
+adaptation_slots = 2
+carry_environment = true
+include_historical_spending = true
+model_call_cap = 22
+model_token_cap = 440000
+
+[execution]
+max_training_episodes = 128
+max_episode_steps = 24
+public_training_seeds_per_evaluation = 1
+independent_training_seeds_per_source = 2
+evaluation_episodes_per_training = 4
+independent_seed_offset = 100000
+root_training_steps = 100000
+root_evaluation_steps = 12000
+root_tool_calls = 20000
+root_compute_ms = 120000
+job_timeout_seconds = 10
+training_state_inheritance = "none"
+independent_analysis = "after_all_search_frozen"
+missing_policy = "retain_missing_and_reservation_no_retry"
+
+[model]
+base_url = "https://api.moonshot.cn/v1"
+model = "kimi-k2.6"
+api_key_env = "MOONSHOT_API_KEY"
+temperature = 0.6
+thinking_mode = "disabled"
+max_output_tokens = 4096
+max_prompt_bytes = 40000
+timeout_seconds = 120.0
+dynamic_root_calls = 4
+dynamic_root_tokens = 80000
+rl_root_calls = 3
+rl_root_tokens = 60000
